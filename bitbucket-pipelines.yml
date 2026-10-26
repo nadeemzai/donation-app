@@ -1,0 +1,42 @@
+# Donation Management System — CI (Laravel app lives in donation-app/)
+image: php:8.3-cli
+
+definitions:
+  caches:
+    composer-app: donation-app/vendor
+  services:
+    mysql:
+      image: mysql:8.0
+      variables:
+        MYSQL_DATABASE: donation_ci
+        MYSQL_ROOT_PASSWORD: secret
+  steps:
+    - step: &checks
+        name: Lint · Larastan · Tests
+        caches:
+          - composer-app
+        services:
+          - mysql
+        script:
+          - apt-get update -qq && apt-get install -y -qq git unzip > /dev/null
+          - curl -sSLf -o /usr/local/bin/install-php-extensions https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions
+          - chmod +x /usr/local/bin/install-php-extensions
+          - install-php-extensions bcmath intl zip gd exif pcntl pdo_mysql
+          - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+          - cd donation-app
+          - composer install --no-interaction --prefer-dist --no-progress
+          - cp .env.example .env
+          - php artisan key:generate
+          - export DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_PORT=3306 DB_DATABASE=donation_ci DB_USERNAME=root DB_PASSWORD=secret
+          - php artisan migrate --force
+          - composer check
+
+pipelines:
+  pull-requests:
+    '**':
+      - step: *checks
+  branches:
+    develop:
+      - step: *checks
+    main:
+      - step: *checks
