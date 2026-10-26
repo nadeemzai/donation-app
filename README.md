@@ -18,7 +18,7 @@ Donation platform for a single NGO in Pakistan: donors give through the website 
 
 ## Prerequisites
 
-- PHP 8.3+ (Laravel Herd; currently 8.4) with bcmath, intl, pcntl, gd, exif, pdo_mysql
+- PHP 8.4+ (Laravel Herd) with bcmath, intl, pcntl, gd, exif, pdo_mysql
 - Composer 2, Node 20+, MySQL 8, git
 
 ## Setup on a new machine

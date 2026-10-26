@@ -13,7 +13,6 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -23,6 +22,24 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
 {
+    /**
+     * Sidebar groups, in display order. Resources set $navigationGroup to one of these.
+     *
+     * @var list<string>
+     */
+    public const NAVIGATION_GROUPS = [
+        'Dashboard',
+        'Donations',
+        'Campaigns',
+        'Donors',
+        'Programs',
+        'Seasonal',
+        'Inventory',
+        'Finance',
+        'Content',
+        'Settings',
+    ];
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -30,9 +47,17 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('Donation Management')
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::hex('#1F3A68'),
+                'info' => Color::hex('#2B5BA8'),
+                'gray' => Color::Slate,
             ])
+            ->darkMode(true)
+            ->spa()
+            ->databaseNotifications()
+            ->sidebarCollapsibleOnDesktop()
+            ->navigationGroups(self::NAVIGATION_GROUPS)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -41,7 +66,6 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
