@@ -32,7 +32,7 @@ donation-system/            ← git root; start Claude Code here
 
 | Concern | Package |
 |---|---|
-| Framework | Laravel 13, PHP 8.3+ |
+| Framework | Laravel 13, PHP 8.4+ (Symfony 8 requires it) |
 | Admin | filament/filament ^5 (built-in MFA for staff) |
 | Roles/permissions | spatie/laravel-permission + bezhansalleh/filament-shield (check Filament 5 compatibility before installing; if unsupported, use spatie/laravel-permission + policies only) |
 | Audit | spatie/laravel-activitylog |
@@ -87,7 +87,7 @@ tests/Feature, tests/Unit
 
 - `declare(strict_types=1);` in every PHP file. Typed properties, parameters and returns.
 - Every status/type column has a backed enum in `app/Enums` with `label()` and, for Filament, `HasLabel`/`HasColor`.
-- Models: `$fillable` explicit (never `$guarded = []`), relationships typed, casts in `casts()` method.
+- Models: mass-assignable fields declared explicitly with Laravel 13's `#[Fillable([...])]` / `#[Hidden([...])]` attributes (never `$guarded = []` or `#[Unguarded]`), relationships typed, casts in `casts()` method.
 - Every model gets a factory. Every resource gets a policy. Register nothing by hand that auto-discovery handles.
 - Validation in FormRequests (API/web) or Filament form rules; business rules in services.
 - Queue anything slow or external: PDFs, email, SMS, WhatsApp, reconciliation, gateway status checks.
