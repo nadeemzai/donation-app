@@ -307,7 +307,7 @@ Priority: Must (go-live) · Should (go-live if time allows) · Could (Phase 2).
 | Audit / media / settings | spatie/laravel-activitylog, laravel-medialibrary, laravel-settings | Battle-tested Spatie packages with Filament plugins |
 | Messaging | Green API (WhatsApp) via Laravel HTTP client; mail via SMTP/SES | Custom notification channel; no SDK needed |
 | Quality | Pest, Larastan, Laravel Pint | Tests on every money path; static analysis in CI |
-| Ops | spatie/laravel-backup, Sentry (or similar), Bitbucket Pipelines | Backups, error tracking, CI/CD |
+| Ops | spatie/laravel-backup, Sentry (or similar), GitHub Actions | Backups, error tracking, CI/CD |
 
 ### 5.2 Code organisation
 | Location | Responsibility |
@@ -674,7 +674,7 @@ Base `/api/v1`, JSON only, Sanctum bearer tokens. Envelope: `{ success, data, me
 | Day | Task | Output |
 | --- | --- | --- |
 | D1 | Create Laravel 13 project, Git repo, CLAUDE.md (conventions from this document), .env per environment | Repo + CLAUDE.md |
-| D1 | Install Filament 5, Pest, Larastan, Pint; set up Bitbucket Pipelines (lint + tests) | Green CI pipeline |
+| D1 | Install Filament 5, Pest, Larastan, Pint; set up GitHub Actions (lint + tests) | Green CI pipeline |
 | D2 | Two auth guards: staff (users) and donors; Sanctum installed; donor model scaffold | Guards configured |
 | D3 | spatie/laravel-permission + Filament Shield; seed 7 roles and base permissions | Roles seeded |
 | D3 | 2FA for privileged roles, login throttling and login history | Secure admin login |

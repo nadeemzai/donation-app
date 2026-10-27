@@ -14,7 +14,7 @@ Donation platform for a single NGO in Pakistan: donors give through the website 
 | `docs/prompts/week-NN.md` | Weekly task prompts |
 | `donation-app/` | The Laravel application |
 | `setup.sh` | One-time setup (already run) |
-| `bitbucket-pipelines.yml` | CI: Pint, Larastan, tests |
+| `.github/workflows/ci.yml` | GitHub Actions CI: Pint, Larastan, tests on MySQL 8 |
 
 ## Prerequisites
 
