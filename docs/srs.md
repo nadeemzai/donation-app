@@ -303,7 +303,7 @@ Priority: Must (go-live) · Should (go-live if time allows) · Could (Phase 2).
 | Cache / queue | Redis + Laravel Horizon | Queued receipts, notifications, reconciliation |
 | Storage | S3-compatible object storage | Receipts, media, payment proofs (private disks + signed URLs) |
 | PDF | spatie/laravel-pdf (Chromium) | Handles Urdu text in receipts, unlike most pure-PHP PDF engines |
-| Permissions | spatie/laravel-permission + Filament Shield | Role/permission UI generated per resource |
+| Permissions | spatie/laravel-permission + config/permissions.php matrix | Roles and permissions defined in code from §3.1; seeded, versioned in git |
 | Audit / media / settings | spatie/laravel-activitylog, laravel-medialibrary, laravel-settings | Battle-tested Spatie packages with Filament plugins |
 | Messaging | Green API (WhatsApp) via Laravel HTTP client; mail via SMTP/SES | Custom notification channel; no SDK needed |
 | Quality | Pest, Larastan, Laravel Pint | Tests on every money path; static analysis in CI |
@@ -676,7 +676,7 @@ Base `/api/v1`, JSON only, Sanctum bearer tokens. Envelope: `{ success, data, me
 | D1 | Create Laravel 13 project, Git repo, CLAUDE.md (conventions from this document), .env per environment | Repo + CLAUDE.md |
 | D1 | Install Filament 5, Pest, Larastan, Pint; set up GitHub Actions (lint + tests) | Green CI pipeline |
 | D2 | Two auth guards: staff (users) and donors; Sanctum installed; donor model scaffold | Guards configured |
-| D3 | spatie/laravel-permission + Filament Shield; seed 7 roles and base permissions | Roles seeded |
+| D3 | spatie/laravel-permission + config/permissions.php matrix; seed 7 roles and permissions | Roles seeded |
 | D3 | 2FA for privileged roles, login throttling and login history | Secure admin login |
 | D4 | Settings module (organisation, numbering prefixes, thresholds, gateway credentials encrypted) | Settings pages |
 | D5 | Activity log on base models; sequence-number service with row locking + Pest tests | Audit + numbering service |

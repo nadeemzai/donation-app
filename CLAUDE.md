@@ -34,7 +34,7 @@ donation-system/            ← git root; start Claude Code here
 |---|---|
 | Framework | Laravel 13, PHP 8.4+ (Symfony 8 requires it) |
 | Admin | filament/filament ^5 (built-in MFA for staff) |
-| Roles/permissions | spatie/laravel-permission + bezhansalleh/filament-shield (check Filament 5 compatibility before installing; if unsupported, use spatie/laravel-permission + policies only) |
+| Roles/permissions | spatie/laravel-permission, driven by `config/permissions.php` (Filament Shield is not used) |
 | Audit | spatie/laravel-activitylog |
 | Media | spatie/laravel-medialibrary + filament/spatie-laravel-media-library-plugin |
 | Settings | spatie/laravel-settings + filament/spatie-laravel-settings-plugin |
@@ -132,4 +132,10 @@ Local queue/cache/session use the `database` driver; Redis + Horizon are for sta
 
 ## Roles (seeded)
 
-`super_admin`, `manager`, `finance`, `campaign_manager`, `field_officer`, `trustee`, `auditor`. Permission matrix: `docs/srs.md` §3.1.
+`super_admin`, `manager`, `finance`, `campaign_manager`, `field_officer`, `trustee`, `auditor` (`App\Enums\Role`).
+
+- The matrix in `config/permissions.php` mirrors `docs/srs.md` §3.1 and is the only place access is defined. Permission names are `{area}.{ability}` (e.g. `donors.update`, `disbursements.approve`).
+- `php artisan db:seed --class=RolesAndPermissionsSeeder` applies it (idempotent). Never create roles or permissions by hand or in the UI.
+- Every Filament resource gets a policy whose methods call `$user->can('{area}.{ability}')`. A new area means: add a row to the matrix, re-seed, write the policy, add a test.
+- `super_admin` passes every check via `Gate::before` in `AppServiceProvider`.
+- Staff are deactivated (`is_active = false`), never deleted.
