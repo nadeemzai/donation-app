@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\DonorType;
+use App\Enums\SequenceKey;
+use App\Models\Concerns\Auditable;
+use App\Services\NumberSequenceService;
 use App\Support\Cnic;
 use Database\Factories\DonorFactory;
 use DomainException;
@@ -26,10 +29,14 @@ use Laravel\Sanctum\HasApiTokens;
 class Donor extends Authenticatable
 {
     /** @use HasFactory<DonorFactory> */
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use Auditable, HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected static function booted(): void
     {
+        static::creating(function (Donor $donor): void {
+            $donor->donor_code ??= app(NumberSequenceService::class)->next(SequenceKey::Donor);
+        });
+
         static::saving(function (Donor $donor): void {
             if (blank($donor->email) && blank($donor->phone)) {
                 throw new DomainException('A donor needs an email address or a phone number.');
