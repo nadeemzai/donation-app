@@ -53,7 +53,7 @@ it('never logs passwords', function () {
 });
 
 it('never logs a donor\'s CNIC, NTN or password', function () {
-    $donor = Donor::factory()->create(['cnic' => '35202-1234567-1', 'ntn' => '1234567-8', 'phone' => '03009998887', 'email' => 'donor@example.org']);
+    $donor = Donor::factory()->create(['cnic' => '35202-1234567-1', 'ntn' => '1234567-8', 'phone' => '03009998887', 'email' => 'donor@example.org', 'city' => 'Lahore']);
     $donor->update(['cnic' => '61101-7654321-9', 'city' => 'Multan']);
 
     $json = Activity::all()->toJson();
@@ -63,7 +63,9 @@ it('never logs a donor\'s CNIC, NTN or password', function () {
         ->not->toContain('1234567-8')
         ->not->toContain('cnic')
         ->not->toContain('ntn')
-        ->and(lastActivity()->attribute_changes['attributes'])->toBe(['city' => 'Multan']);
+        ->and(lastActivity()->event)->toBe('updated')
+        ->and(lastActivity()->attribute_changes['attributes'])->toBe(['city' => 'Multan'])
+        ->and(lastActivity()->attribute_changes['old'])->toBe(['city' => 'Lahore']);
 });
 
 it('logs settings changes with before and after values', function () {
