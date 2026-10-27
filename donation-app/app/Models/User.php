@@ -17,7 +17,7 @@ use Illuminate\Notifications\Notifiable;
  * Staff account (guard: web). Used only by the Filament admin panel.
  * Donors are a separate model and guard.
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'password', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -25,12 +25,11 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     /**
-     * Who may enter the admin panel.
-     * W01-D2 restricts this to active users (users.is_active).
+     * Only active staff may enter the admin panel (FR-ACC-01).
      */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $panel->getId() === 'admin';
+        return $panel->getId() === 'admin' && $this->is_active;
     }
 
     /**
@@ -43,6 +42,8 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
+            'last_login_at' => 'datetime',
         ];
     }
 }
