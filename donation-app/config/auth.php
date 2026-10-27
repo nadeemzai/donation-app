@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Donor;
 use App\Models\User;
 
 return [
@@ -40,9 +41,17 @@ return [
     */
 
     'guards' => [
+        // Staff — Filament admin panel only.
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+        ],
+
+        // Donors — public website / donor portal (session). The mobile API uses
+        // Sanctum tokens issued to Donor (auth:sanctum).
+        'donor' => [
+            'driver' => 'session',
+            'provider' => 'donors',
         ],
     ],
 
@@ -67,6 +76,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'donors' => [
+            'driver' => 'eloquent',
+            'model' => Donor::class,
         ],
 
         // 'users' => [
@@ -98,6 +112,13 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        'donors' => [
+            'provider' => 'donors',
+            'table' => 'donor_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

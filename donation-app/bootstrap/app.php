@@ -2,10 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Support\ApiResponse;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,4 +25,39 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        // Every /api error uses the same envelope as successful responses.
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 422, $e->errors());
+            }
+
+            return null;
+        });
+
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error('Unauthenticated.', 401);
+            }
+
+            return null;
+        });
+
+        $exceptions->render(function (HttpExceptionInterface $e, Request $request) {
+            if ($request->is('api/*')) {
+                $status = $e->getStatusCode();
+                // 404 never echoes internals (model class names, route paths).
+                $message = $status !== 404 && $e->getMessage() !== '' ? $e->getMessage() : match ($status) {
+                    403 => 'Forbidden.',
+                    404 => 'Not found.',
+                    405 => 'Method not allowed.',
+                    429 => 'Too many requests.',
+                    default => 'Request failed.',
+                };
+
+                return ApiResponse::error($message, $status);
+            }
+
+            return null;
+        });
     })->create();
