@@ -17,4 +17,13 @@ return [
         'enforce' => env('APP_ENV') !== 'local' || (bool) env('MFA_ENFORCE', true),
     ],
 
+    // First-run defaults for NotificationSettings (database/settings). After
+    // that, values are managed in Admin → Settings → Notifications.
+    'green_api' => [
+        'url' => env('GREEN_API_URL', 'https://api.green-api.com'),
+        'id_instance' => env('GREEN_API_ID_INSTANCE'),
+        'token_instance' => env('GREEN_API_TOKEN_INSTANCE'),
+        'rate_per_minute' => (int) env('WHATSAPP_RATE_PER_MINUTE', 20),
+    ],
+
 ];
