@@ -6,8 +6,10 @@ namespace App\Providers;
 
 use App\Enums\Role;
 use App\Models\User;
+use App\Policies\ActivityPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,5 +27,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn ($user, string $ability) => $user instanceof User
             && str_contains($ability, '.')
             && $user->hasRole(Role::SuperAdmin->value) ? true : null);
+
+        // Vendor model — not picked up by policy auto-discovery.
+        Gate::policy(Activity::class, ActivityPolicy::class);
     }
 }
