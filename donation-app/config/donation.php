@@ -11,4 +11,10 @@ return [
         'password' => env('ADMIN_PASSWORD'),
     ],
 
+    // Two-factor login for Super Admin, Finance and Trustee (FR-ACC-01).
+    // Always enforced outside the local environment, whatever .env says.
+    'mfa' => [
+        'enforce' => env('APP_ENV') !== 'local' || (bool) env('MFA_ENFORCE', true),
+    ],
+
 ];
