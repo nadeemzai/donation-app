@@ -18,7 +18,7 @@ Read this file fully at the start of every session. Requirements live in `docs/s
 donation-system/            ← git root; start Claude Code here
   CLAUDE.md                 ← this file
   setup.sh                  ← one-time setup (already run)
-  bitbucket-pipelines.yml
+  .github/workflows/ci.yml  ← GitHub Actions: Pint, Larastan, tests
   docs/
     srs.md                  ← requirements (source of truth)
     Donation_Management_System_SRS_BRD.docx
