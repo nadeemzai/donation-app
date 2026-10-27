@@ -137,5 +137,6 @@ Local queue/cache/session use the `database` driver; Redis + Horizon are for sta
 - The matrix in `config/permissions.php` mirrors `docs/srs.md` §3.1 and is the only place access is defined. Permission names are `{area}.{ability}` (e.g. `donors.update`, `disbursements.approve`).
 - `php artisan db:seed --class=RolesAndPermissionsSeeder` applies it (idempotent). Never create roles or permissions by hand or in the UI.
 - Every Filament resource gets a policy whose methods call `$user->can('{area}.{ability}')`. A new area means: add a row to the matrix, re-seed, write the policy, add a test.
-- `super_admin` passes every check via `Gate::before` in `AppServiceProvider`.
+- `super_admin` holds every matrix permission (`area.ability`) via `Gate::before` in `AppServiceProvider`, but policy methods are **not** bypassed: a policy that always returns false (e.g. deleting a paid donation or a ledger entry) applies to super admin too. Put hard "never" rules in policies.
+- Two-factor login (authenticator app) is mandatory for `super_admin`, `finance` and `trustee` (`RequireMfaForPrivilegedRoles`).
 - Staff are deactivated (`is_active = false`), never deleted.
