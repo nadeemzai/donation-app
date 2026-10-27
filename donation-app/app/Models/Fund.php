@@ -43,6 +43,13 @@ class Fund extends Model
     /** @use HasFactory<FundFactory> */
     use Auditable, HasFactory, SoftDeletes;
 
+    /** New funds start empty; also true for an unsaved/unrefreshed model. */
+    protected $attributes = [
+        'balance' => '0.00',
+        'is_active' => true,
+        'sort_order' => 0,
+    ];
+
     protected static function booted(): void
     {
         static::saving(function (Fund $fund): void {
