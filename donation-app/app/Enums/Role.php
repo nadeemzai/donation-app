@@ -37,6 +37,25 @@ enum Role: string implements HasLabel
         return $this->label();
     }
 
+    /**
+     * Roles that must use an authenticator app to log in (FR-ACC-01).
+     */
+    public function requiresMfa(): bool
+    {
+        return in_array($this, [self::SuperAdmin, self::Finance, self::Trustee], true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function mfaRequiredValues(): array
+    {
+        return array_values(array_map(
+            fn (self $role): string => $role->value,
+            array_filter(self::cases(), fn (self $role): bool => $role->requiresMfa()),
+        ));
+    }
+
     public static function labelFor(string $name): string
     {
         return self::tryFrom($name)?->label() ?? $name;

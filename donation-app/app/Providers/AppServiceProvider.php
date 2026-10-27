@@ -18,8 +18,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Super admin passes every permission check. Returns null (not false)
-        // for everyone else so normal policies decide. Donors never match.
-        Gate::before(fn ($user) => $user instanceof User && $user->hasRole(Role::SuperAdmin->value) ? true : null);
+        // Super admin holds every matrix permission ("area.ability").
+        // Policy methods (view, update, delete…) are NOT bypassed: a policy that
+        // returns false outright — e.g. "paid donations can never be deleted" —
+        // applies to super admin too. Returns null so normal checks decide otherwise.
+        Gate::before(fn ($user, string $ability) => $user instanceof User
+            && str_contains($ability, '.')
+            && $user->hasRole(Role::SuperAdmin->value) ? true : null);
     }
 }
