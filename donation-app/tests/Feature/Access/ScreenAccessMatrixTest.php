@@ -27,6 +27,8 @@ function adminScreens(): array
         'donations list' => ['/admin/donations', 'donations', 'view_any'],
         'donations create' => ['/admin/donations/create', 'donations', 'create'],
         'fund ledger' => ['/admin/fund-ledger', 'ledger', 'view_any'],
+        'payments' => ['/admin/payments', 'donations', 'view_any'],
+        'proof queue' => ['/admin/proof-queue', 'proof_verification', 'view_any'],
     ];
 }
 
