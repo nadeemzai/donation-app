@@ -20,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * A single gift (FR-DON-01).
@@ -66,10 +68,16 @@ use Illuminate\Support\Carbon;
     'donor_id', 'fund_id', 'campaign_id', 'amount', 'channel', 'payment_method', 'reference',
     'is_anonymous', 'dedication', 'donor_note', 'staff_note', 'received_at', 'recorded_by', 'idempotency_key',
 ])]
-class Donation extends Model
+class Donation extends Model implements HasMedia
 {
     /** @use HasFactory<DonationFactory> */
-    use Auditable, HasFactory;
+    use Auditable, HasFactory, InteractsWithMedia;
+
+    /** Cheque photo, bank slip or deposit receipt for an offline donation. Private disk. */
+    public const PROOF = 'proof';
+
+    /** Offline methods that must come with a reference and a proof file. */
+    public const NEEDS_PROOF = [PaymentMethod::Cheque, PaymentMethod::BankTransfer];
 
     /** Frozen once the donation is settled (BR-05). */
     public const FROZEN_WHEN_SETTLED = ['donor_id', 'fund_id', 'campaign_id', 'amount', 'currency', 'payment_method', 'channel'];
@@ -128,6 +136,18 @@ class Donation extends Model
         static::deleting(function (): void {
             throw new DomainException('Donations are never deleted. Cancel or refund it instead.');
         });
+    }
+
+    /**
+     * Stored on the private "local" disk — proof files are never public. Staff download
+     * them through the admin panel, which checks DonationPolicy first.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::PROOF)
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
+            ->useDisk('local');
     }
 
     /**
