@@ -161,8 +161,10 @@ class DonorResource extends Resource
                     ),
                 Filter::make('possible_duplicates')
                     ->label('Possible duplicates (same name)')
+                    // EXISTS instead of GROUP BY … HAVING: MySQL's only_full_group_by rejects the
+                    // grouped version (SQLite allowed it). Same result on both databases.
                     ->query(fn (Builder $query): Builder => $query->whereRaw(
-                        'LOWER(TRIM(name)) IN (SELECT LOWER(TRIM(d2.name)) FROM donors d2 WHERE d2.deleted_at IS NULL GROUP BY LOWER(TRIM(d2.name)) HAVING COUNT(*) > 1)'
+                        'EXISTS (SELECT 1 FROM donors d2 WHERE d2.deleted_at IS NULL AND d2.id <> donors.id AND LOWER(TRIM(d2.name)) = LOWER(TRIM(donors.name)))'
                     )),
                 TrashedFilter::make(),
             ])
