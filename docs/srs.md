@@ -1,4 +1,4 @@
-# Donation Management System — SRS / BRD (v1.2)
+# Donation Management System — SRS / BRD (v1.3)
 
 > Source of truth for requirements. Mirrors the signed Word document.
 > When a requirement changes, update this file in the same commit as the code.
@@ -95,7 +95,8 @@ F = full · C = create/edit · A = approve · V = view · - = none. Donors use a
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Users, roles & settings | F | V | - | - | - | - | V |
 | Donors | F | C | C | V | - | V | V |
-| Funds & campaigns | F | C | V | C | - | V | V |
+| Funds | F | C | C | C | - | V | V |
+| Campaigns & updates | F | C | V | C | - | V | V |
 | Donations & payments | F | V | C | V | - | V | V |
 | Proof verification | F | - | A | - | - | - | V |
 | Receipts & certificates | F | V | C | - | - | - | V |
@@ -129,7 +130,7 @@ Priority: Must (go-live) · Should (go-live if time allows) · Could (Phase 2).
 #### M03–M04 Funds & Campaigns
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR-CMP-01 | Finance defines funds with type, Zakat flag, restriction note and active status. | Must |
+| FR-CMP-01 | Finance (and Manager, Campaign Manager) define funds with type, Zakat flag, restriction note and active status. Funds have their own permission area, separate from campaigns. | Must |
 | FR-CMP-02 | Campaign Manager creates campaigns with fund, goal, start/end dates, story (rich text), cover image, gallery and status. | Must |
 | FR-CMP-03 | Raised amount and donor count update automatically when a donation is confirmed. | Must |
 | FR-CMP-04 | Campaign updates (text + media) can be published and are visible on web/API; optionally notify donors of that campaign. | Should |

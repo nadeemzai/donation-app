@@ -8,28 +8,28 @@ use App\Models\Fund;
 use App\Models\User;
 
 /**
- * Funds belong to the "campaigns" area of the permission matrix (§3.1: Funds & campaigns).
+ * Funds have their own area in the permission matrix (§3.1: Funds). Finance can create and edit them.
  */
 class FundPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('campaigns.view_any');
+        return $user->can('funds.view_any');
     }
 
     public function view(User $user, Fund $fund): bool
     {
-        return $user->can('campaigns.view');
+        return $user->can('funds.view');
     }
 
     public function create(User $user): bool
     {
-        return $user->can('campaigns.create');
+        return $user->can('funds.create');
     }
 
     public function update(User $user, Fund $fund): bool
     {
-        return $user->can('campaigns.update');
+        return $user->can('funds.update');
     }
 
     /**
@@ -38,7 +38,7 @@ class FundPolicy
      */
     public function delete(User $user, Fund $fund): bool
     {
-        return $user->can('campaigns.delete')
+        return $user->can('funds.delete')
             && ! $fund->campaigns()->withTrashed()->exists()
             && bccomp($fund->balance, '0', 2) === 0;
     }
@@ -50,7 +50,7 @@ class FundPolicy
 
     public function restore(User $user, Fund $fund): bool
     {
-        return $user->can('campaigns.delete');
+        return $user->can('funds.delete');
     }
 
     public function forceDelete(User $user, Fund $fund): bool

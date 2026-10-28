@@ -10,14 +10,14 @@ use App\Models\Campaign;
 use App\Models\Fund;
 use Livewire\Livewire;
 
-// FR-CMP-01, §3.1 (area: campaigns) — funds screen
+// FR-CMP-01, §3.1 (area: funds) — funds screen
 
 it('lets each role open the funds list as the matrix allows', function (Role $role, int $status) {
     $this->actingAs(staffUser($role))->get('/admin/funds')->assertStatus($status);
 })->with([
     'super admin' => [Role::SuperAdmin, 200],
     'manager' => [Role::Manager, 200],
-    'finance (view)' => [Role::Finance, 200],
+    'finance' => [Role::Finance, 200],
     'campaign manager' => [Role::CampaignManager, 200],
     'trustee (view)' => [Role::Trustee, 200],
     'auditor (view)' => [Role::Auditor, 200],
@@ -29,12 +29,21 @@ it('lets only create-level roles add a fund', function (Role $role, int $status)
 })->with([
     'manager' => [Role::Manager, 200],
     'campaign manager' => [Role::CampaignManager, 200],
-    'finance' => [Role::Finance, 403],
+    'finance' => [Role::Finance, 200],
+    'trustee' => [Role::Trustee, 403],
     'auditor' => [Role::Auditor, 403],
 ]);
 
+it('lets Finance create a fund without being able to create campaigns', function () {
+    $finance = staffUser(Role::Finance);
+
+    expect($finance->can('funds.create'))->toBeTrue()
+        ->and($finance->can('funds.update'))->toBeTrue()
+        ->and($finance->can('campaigns.create'))->toBeFalse();
+});
+
 it('creates a fund', function () {
-    $this->actingAs(staffUser(Role::CampaignManager));
+    $this->actingAs(staffUser(Role::Finance));
 
     Livewire::test(CreateFund::class)
         ->fillForm(['code' => 'education', 'name' => 'Education Support', 'type' => FundType::General->value, 'sort_order' => 70, 'is_active' => true])
