@@ -8,6 +8,9 @@ use App\Enums\CheckoutType;
 
 /**
  * What the website / app does after a payment is started. Returned as-is by the API.
+ *
+ * result: set when the gateway already answered while starting (a direct wallet charge
+ * the donor approved during the call). PaymentService applies it straight away.
  */
 final readonly class CheckoutInstruction
 {
@@ -19,6 +22,7 @@ final readonly class CheckoutInstruction
         public ?string $url = null,
         public array $fields = [],
         public ?string $message = null,
+        public ?GatewayResult $result = null,
     ) {}
 
     public static function redirect(string $url): self
@@ -34,9 +38,9 @@ final readonly class CheckoutInstruction
         return new self(CheckoutType::FormPost, $url, $fields);
     }
 
-    public static function awaitingDonor(string $message): self
+    public static function awaitingDonor(string $message, ?GatewayResult $result = null): self
     {
-        return new self(CheckoutType::AwaitingDonor, message: $message);
+        return new self(CheckoutType::AwaitingDonor, message: $message, result: $result);
     }
 
     /**
