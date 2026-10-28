@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Exceptions;
 
 use App\Models\Fund;
+use App\Support\Money;
 use DomainException;
 
 /**
@@ -18,20 +19,10 @@ class InsufficientFundBalance extends DomainException
         public readonly string $requested,
     ) {
         parent::__construct(sprintf(
-            'Not enough money in %s: Rs %s available, Rs %s needed.',
+            'Not enough money in %s: %s available, %s needed.',
             $fund->name,
-            self::rupees($available),
-            self::rupees($requested),
+            Money::rupees($available),
+            Money::rupees($requested),
         ));
-    }
-
-    /** "1234567.50" → "1,234,567.50" without going through float. */
-    private static function rupees(string $amount): string
-    {
-        [$whole, $paisa] = explode('.', bcadd($amount, '0', 2));
-        $sign = str_starts_with($whole, '-') ? '-' : '';
-        $whole = ltrim($whole, '-');
-
-        return $sign.strrev(implode(',', str_split(strrev($whole), 3))).'.'.$paisa;
     }
 }

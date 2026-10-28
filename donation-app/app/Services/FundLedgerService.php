@@ -9,6 +9,7 @@ use App\Exceptions\InsufficientFundBalance;
 use App\Models\Fund;
 use App\Models\FundLedgerEntry;
 use App\Models\User;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -120,14 +121,9 @@ class FundLedgerService
         });
     }
 
-    /** "1500" / "1500.5" / "1500.50" → "1500.50". Rejects anything else, and zero. */
     private function normalise(string $amount): string
     {
-        if (preg_match('/^\d{1,12}(\.\d{1,2})?$/', $amount) !== 1) {
-            throw new InvalidArgumentException("Invalid amount [{$amount}].");
-        }
-
-        $amount = bcadd($amount, '0', 2);
+        $amount = Money::normalise($amount);
 
         if (bccomp($amount, '0', 2) <= 0) {
             throw new DomainException('A ledger amount must be more than zero.');
