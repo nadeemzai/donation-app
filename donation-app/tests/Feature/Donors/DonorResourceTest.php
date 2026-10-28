@@ -88,7 +88,8 @@ it('rejects a CNIC or phone that another donor already has, in any format', func
 });
 
 it('never sends the CNIC or NTN to the browser when editing', function () {
-    $donor = Donor::factory()->create(['cnic' => '35202-1234567-1', 'ntn' => '7654321-8']);
+    // Deliberately different from the field's placeholder example (35202-1234567-1).
+    $donor = Donor::factory()->create(['cnic' => '42101-9876543-2', 'ntn' => '7654321-8']);
     $this->actingAs(staffUser(Role::Finance));
 
     $page = Livewire::test(EditDonor::class, ['record' => $donor->getRouteKey()]);
@@ -96,10 +97,10 @@ it('never sends the CNIC or NTN to the browser when editing', function () {
     expect($page->get('data.cnic'))->toBeNull()
         ->and($page->get('data.ntn'))->toBeNull()
         ->and($page->html())
-        ->not->toContain('35202-1234567-1')
-        ->not->toContain('3520212345671')
+        ->not->toContain('42101-9876543-2')
+        ->not->toContain('4210198765432')
         ->not->toContain('7654321-8')
-        ->toContain('35202-•••••••-1');
+        ->toContain('42101-•••••••-2');
 });
 
 it('keeps the stored CNIC when the field is left empty, and replaces it when filled', function () {
