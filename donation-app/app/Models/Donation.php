@@ -191,6 +191,16 @@ class Donation extends Model implements HasMedia
     }
 
     /**
+     * Gateway payment attempts (Week 4). Offline donations have none.
+     *
+     * @return HasMany<Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class)->orderBy('id');
+    }
+
+    /**
      * @return HasMany<DonationRefund, $this>
      */
     public function refunds(): HasMany

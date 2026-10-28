@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Enums\Role;
 use App\Models\User;
+use App\Payments\GatewayRegistry;
 use App\Policies\ActivityPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -15,7 +16,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // One registry per request. Gateway adapters are added here as they are built
+        // (JazzCash — Week 4 Day 2, Easypaisa — Day 3).
+        $this->app->singleton(GatewayRegistry::class, fn (): GatewayRegistry => new GatewayRegistry);
     }
 
     public function boot(): void
