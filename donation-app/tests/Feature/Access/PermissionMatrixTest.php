@@ -40,7 +40,7 @@ it('gives each role exactly what the matrix says', function (Role $role, array $
     }
 })->with([
     'manager' => [Role::Manager, ['donors.create', 'disbursements.approve', 'users.view_any'], ['users.update', 'proof_verification.view', 'disbursements.create']],
-    'finance' => [Role::Finance, ['proof_verification.approve', 'donations.create', 'ledger.update'], ['users.view_any', 'cms.view', 'disbursements.approve']],
+    'finance' => [Role::Finance, ['proof_verification.approve', 'donations.create', 'ledger.update', 'funds.create'], ['users.view_any', 'cms.view', 'disbursements.approve', 'campaigns.create']],
     'campaign manager' => [Role::CampaignManager, ['campaigns.create', 'cms.update'], ['donations.create', 'beneficiaries.view']],
     'field officer' => [Role::FieldOfficer, ['beneficiaries.create', 'disbursements.create'], ['donors.view', 'disbursements.approve']],
     'trustee' => [Role::Trustee, ['disbursements.approve', 'ledger.view', 'audit_log.view'], ['donors.create', 'users.view_any']],

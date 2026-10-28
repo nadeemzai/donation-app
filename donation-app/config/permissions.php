@@ -33,7 +33,8 @@ return [
     'matrix' => [
         'users' => ['F', 'V', '-', '-', '-', '-', 'V'], // users, roles & settings
         'donors' => ['F', 'C', 'C', 'V', '-', 'V', 'V'],
-        'campaigns' => ['F', 'C', 'V', 'C', '-', 'V', 'V'], // funds & campaigns
+        'funds' => ['F', 'C', 'C', 'C', '-', 'V', 'V'], // funds (Finance manages them)
+        'campaigns' => ['F', 'C', 'V', 'C', '-', 'V', 'V'], // campaigns & progress updates
         'donations' => ['F', 'V', 'C', 'V', '-', 'V', 'V'], // donations & payments
         'proof_verification' => ['F', '-', 'A', '-', '-', '-', 'V'],
         'receipts' => ['F', 'V', 'C', '-', '-', '-', 'V'], // receipts & certificates
