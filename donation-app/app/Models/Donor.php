@@ -14,6 +14,7 @@ use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -39,6 +40,8 @@ use Laravel\Sanctum\HasApiTokens;
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $phone_verified_at
  * @property array<string, mixed>|null $preferences
+ * @property int|null $merged_into_id
+ * @property Carbon|null $merged_at
  * @property Carbon|null $last_login_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -58,7 +61,11 @@ class Donor extends Authenticatable
         });
 
         static::saving(function (Donor $donor): void {
-            if (blank($donor->email) && blank($donor->phone)) {
+            // One space between words, none at the ends — keeps duplicate matching reliable.
+            $donor->name = trim(preg_replace('/\s+/u', ' ', $donor->name) ?? $donor->name);
+
+            // A merged duplicate hands its contact details to the surviving record.
+            if ($donor->merged_into_id === null && blank($donor->email) && blank($donor->phone)) {
                 throw new DomainException('A donor needs an email address or a phone number.');
             }
 
@@ -96,6 +103,19 @@ class Donor extends Authenticatable
         return str_repeat('•', max(0, strlen($ntn) - 2)).substr($ntn, -2);
     }
 
+    /**
+     * @return BelongsTo<Donor, $this>
+     */
+    public function mergedInto(): BelongsTo
+    {
+        return $this->belongsTo(Donor::class, 'merged_into_id');
+    }
+
+    public function isMerged(): bool
+    {
+        return $this->merged_into_id !== null;
+    }
+
     public function isGuest(): bool
     {
         return $this->password === null;
@@ -114,6 +134,7 @@ class Donor extends Authenticatable
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'merged_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
