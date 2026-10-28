@@ -65,7 +65,8 @@ final class EasypaisaGateway implements PaymentGateway
 
     public const PENDING_STATUSES = ['PENDING', 'INITIATED'];
 
-    private const EXPIRY_HOURS = 24;
+    /** Time the donor has on Easypaisa's side to finish — inside PaymentService::GIVE_UP_AFTER_MINUTES. */
+    private const EXPIRY_HOURS = 1;
 
     public function method(): PaymentMethod
     {

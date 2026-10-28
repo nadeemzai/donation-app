@@ -62,8 +62,8 @@ final class JazzCashGateway implements PaymentGateway
     /** Never kept in GatewayResult::$raw (which may be logged). */
     private const SECRET_FIELDS = ['pp_Password', 'pp_SecureHash', 'pp_CNIC'];
 
-    /** Time the donor has on JazzCash's side to finish. */
-    private const EXPIRY_HOURS = 24;
+    /** Time the donor has on JazzCash's side to finish — inside PaymentService::GIVE_UP_AFTER_MINUTES. */
+    private const EXPIRY_HOURS = 1;
 
     public function method(): PaymentMethod
     {

@@ -23,6 +23,8 @@ use Throwable;
  *   initiate()    → creates a Payment, asks the gateway to start it
  *   applyResult() → applies a VERIFIED gateway answer (callback or status check):
  *                   success confirms the donation through DonationService, failure fails it
+ *   checkStatus() → asks the gateway about an open payment (stale-payment job)
+ *   expire()      → gives up on a payment the gateway never decided
  *
  * applyResult() is safe to call any number of times with the same answer (replayed
  * webhooks). Anything unusual — wrong amount, a gateway transaction id seen before,
@@ -31,8 +33,14 @@ use Throwable;
  */
 class PaymentService
 {
-    /** How long a donor has to finish paying before the payment is checked and expired (Day 5). */
+    /** After this, the payment is checked with the gateway (payments:check-stale). */
     public const EXPIRES_AFTER_MINUTES = 30;
+
+    /** Still undecided this long after it started → expired. The gateways' own expiry is 1 hour. */
+    public const GIVE_UP_AFTER_MINUTES = 120;
+
+    /** Don't ask the gateway about the same payment more often than this. */
+    public const RECHECK_AFTER_MINUTES = 5;
 
     public function __construct(
         private readonly GatewayRegistry $gateways,
@@ -132,6 +140,63 @@ class PaymentService
         });
     }
 
+    /**
+     * Ask the gateway about an open payment and apply its answer (stale-payment job).
+     * The gateway is called outside any transaction. If it can't be reached or still
+     * hasn't decided once GIVE_UP_AFTER_MINUTES have passed, the payment expires. A
+     * success that arrives after that still reaches Finance as "needs review".
+     */
+    public function checkStatus(Payment $payment): Payment
+    {
+        $payment = Payment::query()->findOrFail($payment->getKey());
+
+        if (! $payment->status->isOpen()) {
+            return $payment;
+        }
+
+        Payment::query()->whereKey($payment->getKey())->update([
+            'last_checked_at' => now(),
+            'check_count' => $payment->check_count + 1,
+        ]);
+
+        $error = null;
+
+        try {
+            $result = $this->gateways->get($payment->method)->queryStatus($payment);
+        } catch (Throwable $e) {
+            report($e);
+            $result = null;
+            $error = 'Status check failed: '.mb_substr($e->getMessage(), 0, 150);
+        }
+
+        if ($result !== null) {
+            $payment = $this->applyResult($payment, $result);
+        }
+
+        if ($payment->status->isOpen() && $payment->initiated_at->lte(now()->subMinutes(self::GIVE_UP_AFTER_MINUTES))) {
+            return $this->expire($payment, $error ?? 'No answer from the gateway in time.');
+        }
+
+        return $payment->refresh();
+    }
+
+    /** Give up on an open payment; its donation fails unless another attempt is still open. */
+    public function expire(Payment $payment, string $reason): Payment
+    {
+        return DB::transaction(function () use ($payment, $reason): Payment {
+            $locked = Payment::query()->lockForUpdate()->findOrFail($payment->getKey());
+
+            if (! $locked->status->isOpen()) {
+                return $locked;
+            }
+
+            $this->move($locked, PaymentStatus::Expired, message: $reason);
+            $this->closeDonationIfLastAttempt($locked, 'Payment expired: '.$reason);
+
+            return $locked;
+        });
+    }
+
     public function findByReference(string $reference): ?Payment
     {
         return Payment::query()->where('reference', $reference)->first();
@@ -153,9 +218,16 @@ class PaymentService
         }
 
         $this->move($payment, PaymentStatus::Failed, $result);
+        $this->closeDonationIfLastAttempt($payment, $result->message ?? 'Payment failed at the gateway');
 
-        // The donation fails too, unless the donor already started another attempt.
-        $donation = $payment->donation;
+        return $payment;
+    }
+
+    /** The donation fails too, unless the donor already started another attempt. */
+    private function closeDonationIfLastAttempt(Payment $payment, string $reason): void
+    {
+        $donation = Donation::query()->findOrFail($payment->donation_id);
+
         $otherOpen = Payment::query()
             ->where('donation_id', $donation->id)
             ->whereKeyNot($payment->getKey())
@@ -163,10 +235,8 @@ class PaymentService
             ->exists();
 
         if ($donation->status === DonationStatus::Pending && ! $otherOpen) {
-            $this->donations->fail($donation, $result->message ?? 'Payment failed at the gateway');
+            $this->donations->fail($donation, $reason);
         }
-
-        return $payment;
     }
 
     private function succeeded(Payment $payment, GatewayResult $result): Payment
