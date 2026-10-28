@@ -18,7 +18,7 @@ Read this file fully at the start of every session. Requirements live in `docs/s
 donation-system/            ← git root; start Claude Code here
   CLAUDE.md                 ← this file
   setup.sh                  ← one-time setup (already run)
-  bitbucket-pipelines.yml
+  .github/workflows/ci.yml  ← GitHub Actions: Pint, Larastan, tests
   docs/
     srs.md                  ← requirements (source of truth)
     Donation_Management_System_SRS_BRD.docx
@@ -32,9 +32,9 @@ donation-system/            ← git root; start Claude Code here
 
 | Concern | Package |
 |---|---|
-| Framework | Laravel 13, PHP 8.3+ |
+| Framework | Laravel 13, PHP 8.4+ (Symfony 8 requires it) |
 | Admin | filament/filament ^5 (built-in MFA for staff) |
-| Roles/permissions | spatie/laravel-permission + bezhansalleh/filament-shield (check Filament 5 compatibility before installing; if unsupported, use spatie/laravel-permission + policies only) |
+| Roles/permissions | spatie/laravel-permission, driven by `config/permissions.php` (Filament Shield is not used) |
 | Audit | spatie/laravel-activitylog |
 | Media | spatie/laravel-medialibrary + filament/spatie-laravel-media-library-plugin |
 | Settings | spatie/laravel-settings + filament/spatie-laravel-settings-plugin |
@@ -87,7 +87,8 @@ tests/Feature, tests/Unit
 
 - `declare(strict_types=1);` in every PHP file. Typed properties, parameters and returns.
 - Every status/type column has a backed enum in `app/Enums` with `label()` and, for Filament, `HasLabel`/`HasColor`.
-- Models: `$fillable` explicit (never `$guarded = []`), relationships typed, casts in `casts()` method.
+- Models: mass-assignable fields declared explicitly with Laravel 13's `#[Fillable([...])]` / `#[Hidden([...])]` attributes (never `$guarded = []` or `#[Unguarded]`), relationships typed, casts in `casts()` method.
+- Every model has a class docblock with `@property` for each column, using the cast type (enum, `bool`, `Carbon|null`, `string` for decimals). Larastan relies on it — it does not always infer `casts()`.
 - Every model gets a factory. Every resource gets a policy. Register nothing by hand that auto-discovery handles.
 - Validation in FormRequests (API/web) or Filament form rules; business rules in services.
 - Queue anything slow or external: PDFs, email, SMS, WhatsApp, reconciliation, gateway status checks.
@@ -132,4 +133,21 @@ Local queue/cache/session use the `database` driver; Redis + Horizon are for sta
 
 ## Roles (seeded)
 
-`super_admin`, `manager`, `finance`, `campaign_manager`, `field_officer`, `trustee`, `auditor`. Permission matrix: `docs/srs.md` §3.1.
+`super_admin`, `manager`, `finance`, `campaign_manager`, `field_officer`, `trustee`, `auditor` (`App\Enums\Role`).
+
+- The matrix in `config/permissions.php` mirrors `docs/srs.md` §3.1 and is the only place access is defined. Permission names are `{area}.{ability}` (e.g. `donors.update`, `disbursements.approve`).
+- `php artisan db:seed --class=RolesAndPermissionsSeeder` applies it (idempotent). Never create roles or permissions by hand or in the UI.
+- Every Filament resource gets a policy whose methods call `$user->can('{area}.{ability}')`. A new area means: add a row to the matrix, re-seed, write the policy, add a test.
+- `super_admin` holds every matrix permission (`area.ability`) via `Gate::before` in `AppServiceProvider`, but policy methods are **not** bypassed: a policy that always returns false (e.g. deleting a paid donation or a ledger entry) applies to super admin too. Put hard "never" rules in policies.
+- Two-factor login (authenticator app) is mandatory for `super_admin`, `finance` and `trustee` (`RequireMfaForPrivilegedRoles`).
+- Staff are deactivated (`is_active = false`), never deleted.
+
+## Audit trail & numbering (Week 1, Day 5)
+
+- Every model with business data uses `App\Models\Concerns\Auditable` (spatie/laravel-activitylog v5, log name `audit`). Hidden attributes are never logged — so anything sensitive must be in the model's `#[Hidden]` list.
+- Settings pages extend `App\Filament\Support\BaseSettingsPage`; saves are logged (log name `settings`) with secrets masked.
+- The activity log is read-only for everyone and kept 7 years (`config/activitylog.php`). Never delete activity rows.
+- Public numbers come only from `NumberSequenceService::next(SequenceKey::…)` — never from IDs. Call it inside the same transaction that saves the record.
+- **Donor merge (FR-DNR-04):** every new table with a `donor_id` (donations, recurring plans, receipts, tax certificates, Qurbani bookings…) must be re-pointed in `DonorMergeService::moveRelatedRecords()`, with a test. A merged donor is archived with `merged_into_id`; never hard-delete it.
+- Scheduled jobs live in `routes/console.php` (Asia/Karachi). Production needs one cron line: `* * * * * php artisan schedule:run`.
+- The MySQL concurrency test (`tests/Feature/Numbering/NumberSequenceConcurrencyTest.php`) is skipped on SQLite and runs in GitHub Actions.

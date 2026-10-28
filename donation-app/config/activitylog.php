@@ -17,7 +17,8 @@ return [
      * When the clean command is executed, all recording activities older than
      * the number of days specified here will be deleted.
      */
-    'clean_after_days' => 365,
+    // NFR-07: audit records are kept at least 7 years. Do not lower this.
+    'clean_after_days' => 2557,
 
     /*
      * If no log name is passed to the activity() helper

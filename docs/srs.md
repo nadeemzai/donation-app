@@ -1,4 +1,4 @@
-# Donation Management System — SRS / BRD (v1.2)
+# Donation Management System — SRS / BRD (v1.3)
 
 > Source of truth for requirements. Mirrors the signed Word document.
 > When a requirement changes, update this file in the same commit as the code.
@@ -95,7 +95,8 @@ F = full · C = create/edit · A = approve · V = view · - = none. Donors use a
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Users, roles & settings | F | V | - | - | - | - | V |
 | Donors | F | C | C | V | - | V | V |
-| Funds & campaigns | F | C | V | C | - | V | V |
+| Funds | F | C | C | C | - | V | V |
+| Campaigns & updates | F | C | V | C | - | V | V |
 | Donations & payments | F | V | C | V | - | V | V |
 | Proof verification | F | - | A | - | - | - | V |
 | Receipts & certificates | F | V | C | - | - | - | V |
@@ -129,7 +130,7 @@ Priority: Must (go-live) · Should (go-live if time allows) · Could (Phase 2).
 #### M03–M04 Funds & Campaigns
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR-CMP-01 | Finance defines funds with type, Zakat flag, restriction note and active status. | Must |
+| FR-CMP-01 | Finance (and Manager, Campaign Manager) define funds with type, Zakat flag, restriction note and active status. Funds have their own permission area, separate from campaigns. | Must |
 | FR-CMP-02 | Campaign Manager creates campaigns with fund, goal, start/end dates, story (rich text), cover image, gallery and status. | Must |
 | FR-CMP-03 | Raised amount and donor count update automatically when a donation is confirmed. | Must |
 | FR-CMP-04 | Campaign updates (text + media) can be published and are visible on web/API; optionally notify donors of that campaign. | Should |
@@ -303,11 +304,11 @@ Priority: Must (go-live) · Should (go-live if time allows) · Could (Phase 2).
 | Cache / queue | Redis + Laravel Horizon | Queued receipts, notifications, reconciliation |
 | Storage | S3-compatible object storage | Receipts, media, payment proofs (private disks + signed URLs) |
 | PDF | spatie/laravel-pdf (Chromium) | Handles Urdu text in receipts, unlike most pure-PHP PDF engines |
-| Permissions | spatie/laravel-permission + Filament Shield | Role/permission UI generated per resource |
+| Permissions | spatie/laravel-permission + config/permissions.php matrix | Roles and permissions defined in code from §3.1; seeded, versioned in git |
 | Audit / media / settings | spatie/laravel-activitylog, laravel-medialibrary, laravel-settings | Battle-tested Spatie packages with Filament plugins |
 | Messaging | Green API (WhatsApp) via Laravel HTTP client; mail via SMTP/SES | Custom notification channel; no SDK needed |
 | Quality | Pest, Larastan, Laravel Pint | Tests on every money path; static analysis in CI |
-| Ops | spatie/laravel-backup, Sentry (or similar), Bitbucket Pipelines | Backups, error tracking, CI/CD |
+| Ops | spatie/laravel-backup, Sentry (or similar), GitHub Actions | Backups, error tracking, CI/CD |
 
 ### 5.2 Code organisation
 | Location | Responsibility |
@@ -674,9 +675,9 @@ Base `/api/v1`, JSON only, Sanctum bearer tokens. Envelope: `{ success, data, me
 | Day | Task | Output |
 | --- | --- | --- |
 | D1 | Create Laravel 13 project, Git repo, CLAUDE.md (conventions from this document), .env per environment | Repo + CLAUDE.md |
-| D1 | Install Filament 5, Pest, Larastan, Pint; set up Bitbucket Pipelines (lint + tests) | Green CI pipeline |
+| D1 | Install Filament 5, Pest, Larastan, Pint; set up GitHub Actions (lint + tests) | Green CI pipeline |
 | D2 | Two auth guards: staff (users) and donors; Sanctum installed; donor model scaffold | Guards configured |
-| D3 | spatie/laravel-permission + Filament Shield; seed 7 roles and base permissions | Roles seeded |
+| D3 | spatie/laravel-permission + config/permissions.php matrix; seed 7 roles and permissions | Roles seeded |
 | D3 | 2FA for privileged roles, login throttling and login history | Secure admin login |
 | D4 | Settings module (organisation, numbering prefixes, thresholds, gateway credentials encrypted) | Settings pages |
 | D5 | Activity log on base models; sequence-number service with row locking + Pest tests | Audit + numbering service |

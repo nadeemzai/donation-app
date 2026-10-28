@@ -39,7 +39,9 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // Cookie (stateful) API auth uses the donor guard only — staff sessions
+    // must never authenticate API requests.
+    'guard' => ['donor'],
 
     /*
     |--------------------------------------------------------------------------

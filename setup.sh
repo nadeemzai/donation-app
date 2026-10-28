@@ -355,7 +355,7 @@ echo
 echo " Next:"
 echo "   1. cd $APP_DIR && herd link donation-app     # or: composer run dev"
 echo "   2. php artisan make:filament-user            # temporary login until Prompt 4 seeds roles"
-echo "   3. Add the Bitbucket remote:  git remote add origin <url> && git push -u origin main develop"
+echo "   3. Add the GitHub remote:  git remote add origin <url> && git push -u origin main develop"
 echo "   4. Open Claude Code in $ROOT and paste Prompt 1 from docs/prompts/week-01.md"
 echo
 echo " Full log: $LOG"

@@ -60,7 +60,7 @@ Task W01-D1b: configure the panel and lock in code rules.
    - app/Enums contains only enums
    - controllers in app/Http/Controllers/Api/V1 do not use the DB facade
    - app/Models classes extend Illuminate\Database\Eloquent\Model or Authenticatable
-3. Review bitbucket-pipelines.yml at the repo root. It runs from donation-app/. Confirm the
+3. Review .github/workflows/ci.yml (GitHub Actions). It runs from donation-app/. Confirm the
    PHP extensions match what composer.json needs; fix if not.
 
 Acceptance:
