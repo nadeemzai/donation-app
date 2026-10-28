@@ -5,16 +5,22 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Enums\CampaignStatus;
+use App\Enums\DonationChannel;
+use App\Enums\PaymentMethod;
 use App\Models\Campaign;
 use App\Models\CampaignUpdate;
 use App\Models\Donor;
 use App\Models\Fund;
+use App\Services\CampaignService;
+use App\Services\DonationService;
 use Database\Seeders\FundsSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Fills a LOCAL database with realistic sample donors, campaigns and updates,
+ * Fills a LOCAL database with realistic sample donors, campaigns, updates and confirmed
+ * donations (made through DonationService, so ledger:verify passes),
  * so the admin can be clicked through. Refuses to run anywhere except APP_ENV=local.
  *
  *   php artisan demo:seed
@@ -25,7 +31,7 @@ class SeedDemoData extends Command
 
     protected $description = 'Local only: add sample donors, campaigns and updates';
 
-    public function handle(): int
+    public function handle(DonationService $donationService, CampaignService $campaignService): int
     {
         if (! app()->environment('local')) {
             $this->error('demo:seed only runs with APP_ENV=local. It never touches staging or production.');
@@ -33,7 +39,7 @@ class SeedDemoData extends Command
             return self::FAILURE;
         }
 
-        DB::transaction(function (): void {
+        DB::transaction(function () use ($donationService, $campaignService): void {
             (new FundsSeeder)->run();
 
             $donors = Donor::factory()->count(max(1, (int) $this->option('donors')))->create();
@@ -48,19 +54,23 @@ class SeedDemoData extends Command
                     'summary' => $row['summary'],
                     'goal_amount' => $row['goal'],
                     'starts_at' => now()->subDays(20)->toDateString(),
-                    'ends_at' => $row['ends_in'] === null ? null : now()->addDays($row['ends_in'])->toDateString(),
+                    // Open while the sample donations go in; a closed campaign's real end date is set below.
+                    'ends_at' => $row['ends_in'] === null ? null : now()->addDays(max(1, $row['ends_in']))->toDateString(),
                     'is_featured' => $row['featured'],
                 ]);
 
-                // Demo only: set status and totals directly. Real campaigns change only
-                // through CampaignService and donation confirmation.
-                $campaign->forceFill([
-                    'status' => $row['status'],
-                    'published_at' => $row['status'] === CampaignStatus::Draft ? null : now()->subDays(20),
-                    'closed_at' => $row['status'] === CampaignStatus::Closed ? now()->subDay() : null,
-                    'raised_amount' => $row['raised'],
-                    'donor_count' => min($donors->count(), $row['donors']),
-                ])->save();
+                if ($row['status'] !== CampaignStatus::Draft) {
+                    // Demo only: go live without the cover-image check. Real campaigns use CampaignService::publish().
+                    $campaign->forceFill(['status' => CampaignStatus::Live, 'published_at' => now()->subDays(20)])->save();
+
+                    // Real donations through DonationService, so every total matches the ledger (ledger:verify).
+                    $this->addDonations($donationService, $campaign, $donors, $row['raised'], $row['donors']);
+                }
+
+                if ($row['status'] === CampaignStatus::Closed) {
+                    $campaignService->close($campaign, 'Demo: appeal finished');
+                    Campaign::query()->whereKey($campaign->id)->update(['ends_at' => now()->addDays((int) $row['ends_in'])->toDateString()]);
+                }
 
                 CampaignUpdate::factory()->count($row['status'] === CampaignStatus::Draft ? 0 : 2)->for($campaign)->create();
             }
@@ -69,6 +79,39 @@ class SeedDemoData extends Command
         $this->info('Demo data added. Open /admin to explore.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Split $raised across $count different donors (whole rupees; the last gift takes the
+     * remainder) and confirm each one, like a gateway would.
+     *
+     * @param  Collection<int, Donor>  $donors
+     */
+    private function addDonations(DonationService $service, Campaign $campaign, Collection $donors, string $raised, int $count): void
+    {
+        $count = min($count, $donors->count());
+
+        if ($count === 0 || bccomp($raised, '0', 2) <= 0) {
+            return;
+        }
+
+        $each = bcdiv($raised, (string) $count, 0);
+        $methods = [PaymentMethod::JazzCash, PaymentMethod::Easypaisa, PaymentMethod::BankTransfer];
+
+        foreach ($donors->shuffle()->take($count)->values() as $i => $donor) {
+            $amount = $i === $count - 1 ? bcsub($raised, bcmul($each, (string) ($count - 1), 2), 2) : $each;
+
+            $donation = $service->create([
+                'donor_id' => $donor->id,
+                'campaign_id' => $campaign->id,
+                'amount' => $amount,
+                'channel' => DonationChannel::Web,
+                'payment_method' => $methods[$i % count($methods)],
+                'is_anonymous' => $i % 5 === 0,
+            ]);
+
+            $service->confirm($donation, null, 'DEMO-'.str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT), now()->subDays(random_int(0, 19)));
+        }
     }
 
     /**

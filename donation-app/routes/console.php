@@ -24,3 +24,10 @@ Schedule::command('campaigns:close-expired')
     ->timezone('Asia/Karachi')
     ->withoutOverlapping()
     ->onOneServer();
+
+// FR-FIN-01: prove every balance still matches the ledger (read-only check).
+Schedule::command('ledger:verify')
+    ->dailyAt('01:30')
+    ->timezone('Asia/Karachi')
+    ->withoutOverlapping()
+    ->onOneServer();
