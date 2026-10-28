@@ -21,7 +21,8 @@ use Illuminate\Support\Carbon;
  *
  * - is_zakat is always derived from the type; it can't be set by hand.
  * - Restricted funds must record what the money may be used for (BR-10).
- * - balance is not mass-assignable; only FundLedgerService (Week 3) changes it.
+ * - balance is not mass-assignable; only FundLedgerService changes it.
+ * - Once a fund has donations its type can't change — Zakat money must stay Zakat (BR-02).
  *
  * @property int $id
  * @property string $code
@@ -56,6 +57,10 @@ class Fund extends Model
             $fund->code = strtoupper(trim($fund->code));
             $fund->is_zakat = $fund->type->isZakat();
 
+            if ($fund->exists && $fund->isDirty('type') && $fund->donations()->exists()) {
+                throw new DomainException('This fund already has donations, so its type cannot change.');
+            }
+
             if ($fund->type->requiresRestriction() && blank($fund->restriction)) {
                 throw new DomainException('A restricted fund must say what the money may be used for.');
             }
@@ -68,6 +73,22 @@ class Fund extends Model
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
+    }
+
+    /**
+     * @return HasMany<Donation, $this>
+     */
+    public function donations(): HasMany
+    {
+        return $this->hasMany(Donation::class);
+    }
+
+    /**
+     * @return HasMany<FundLedgerEntry, $this>
+     */
+    public function ledgerEntries(): HasMany
+    {
+        return $this->hasMany(FundLedgerEntry::class);
     }
 
     /**

@@ -114,12 +114,24 @@ class DonorMergeService
     /**
      * Re-point the duplicate's records to the survivor.
      *
-     * Week 3 onwards: add donations, recurring plans, receipts, tax certificates and
-     * Qurbani bookings here — every table with a donor_id must be moved.
+     * Every table with a donor_id must be listed here (recurring plans, receipts,
+     * tax certificates and Qurbani bookings follow in later weeks). The move goes
+     * straight to the database: a donation's donor is otherwise frozen once paid
+     * (BR-05) — changing it here is the one approved exception, and it is logged.
      */
     protected function moveRelatedRecords(Donor $duplicate, Donor $survivor): void
     {
-        // No donor-owned records exist yet (Week 2).
+        $moved = DB::table('donations')
+            ->where('donor_id', $duplicate->getKey())
+            ->update(['donor_id' => $survivor->getKey(), 'updated_at' => now()]);
+
+        if ($moved > 0) {
+            activity('audit')
+                ->performedOn($survivor)
+                ->event('donations_moved')
+                ->withProperties(['from_donor_id' => $duplicate->getKey(), 'count' => $moved])
+                ->log("Moved {$moved} donation(s) from {$duplicate->donor_code}");
+        }
     }
 
     public static function normalizeName(string $name): string
