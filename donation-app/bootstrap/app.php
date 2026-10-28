@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [SecurityHeaders::class]);
+        // Payment gateways post their results to /payments/* without our CSRF token.
+        $middleware->validateCsrfTokens(except: ['payments/*']);
         $middleware->api(append: [SecurityHeaders::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -96,6 +96,42 @@ final class DonationActions
     }
 
     /**
+     * Proof queue (FR-PAY-03): the uploaded proof doesn't show the money arriving.
+     * The donation is cancelled with the reason; nothing is added to any fund.
+     */
+    public static function reject(): Action
+    {
+        return Action::make('reject')
+            ->label('Reject')
+            ->icon(Heroicon::OutlinedNoSymbol)
+            ->color('danger')
+            ->visible(fn (Donation $record): bool => self::allowed('confirm', $record))
+            ->modalHeading(fn (Donation $record): string => "Reject the proof for {$record->donation_no}?")
+            ->modalDescription('The donation is cancelled with your reason. The donor can submit a new donation with correct proof.')
+            ->schema([
+                Textarea::make('reason')
+                    ->label('Why is the proof rejected?')
+                    ->helperText('For example: amount does not match, transfer not found in the bank statement, image unreadable.')
+                    ->rows(2)
+                    ->maxLength(300)
+                    ->required(),
+            ])
+            ->modalSubmitActionLabel('Reject proof')
+            ->action(function (Donation $record, array $data): void {
+                try {
+                    app(DonationService::class)->cancel($record, 'Proof rejected: '.(string) $data['reason'], self::user());
+                } catch (DomainException $e) {
+                    Notification::make()->danger()->title('Not rejected')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                $record->refresh();
+                Notification::make()->success()->title('Proof rejected')->send();
+            });
+    }
+
+    /**
      * Partial or full refund. The modal's submit button is disabled while the request
      * runs, and the service re-checks the remaining amount under a row lock, so a
      * double click can never refund more than the donation.
