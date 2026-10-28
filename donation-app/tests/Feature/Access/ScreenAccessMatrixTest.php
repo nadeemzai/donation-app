@@ -24,6 +24,9 @@ function adminScreens(): array
         'campaigns create' => ['/admin/campaigns/create', 'campaigns', 'create'],
         'donors list' => ['/admin/donors', 'donors', 'view_any'],
         'donors create' => ['/admin/donors/create', 'donors', 'create'],
+        'donations list' => ['/admin/donations', 'donations', 'view_any'],
+        'donations create' => ['/admin/donations/create', 'donations', 'create'],
+        'fund ledger' => ['/admin/fund-ledger', 'ledger', 'view_any'],
     ];
 }
 
