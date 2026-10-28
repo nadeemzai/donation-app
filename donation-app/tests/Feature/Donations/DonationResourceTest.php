@@ -301,10 +301,13 @@ it('lets staff download the proof file', function () {
 // ── export ──────────────────────────────────────────────────────────────
 
 it('offers Excel export only to roles with export access', function () {
-    $this->actingAs(staffUser(Role::Finance));
+    $this->actingAs(staffUser(Role::Manager));
     Livewire::test(ListDonations::class)->assertActionHidden('export');
 
-    $this->actingAs(staffUser(Role::SuperAdmin));
+    $this->actingAs(staffUser(Role::Auditor));
+    Livewire::test(ListDonations::class)->assertActionHidden('export');
+
+    $this->actingAs(staffUser(Role::Finance));
     Livewire::test(ListDonations::class)->assertActionVisible('export');
 });
 

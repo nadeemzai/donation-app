@@ -127,6 +127,7 @@ composer check            # pint --test + larastan + tests (must pass before don
 composer fix              # apply pint
 php artisan horizon       # queues (once Redis is configured)
 php artisan scribe:generate
+php artisan ledger:verify   # check every balance/total against the ledger (also runs nightly)
 ```
 
 Local queue/cache/session use the `database` driver; Redis + Horizon are for staging/production.

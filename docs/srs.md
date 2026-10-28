@@ -89,7 +89,7 @@
 
 ## 3. Software requirements
 ### 3.1 Roles & permissions
-F = full · C = create/edit · A = approve · V = view · - = none. Donors use a separate guard and see only their own data.
+F = full · C = create/edit · CE = create/edit + export · A = approve · V = view · - = none. Donors use a separate guard and see only their own data.
 
 | Area | Super Admin | Manager | Finance | Campaign Mgr | Field Officer | Trustee | Auditor |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -97,7 +97,7 @@ F = full · C = create/edit · A = approve · V = view · - = none. Donors use a
 | Donors | F | C | C | V | - | V | V |
 | Funds | F | C | C | C | - | V | V |
 | Campaigns & updates | F | C | V | C | - | V | V |
-| Donations & payments | F | V | C | V | - | V | V |
+| Donations & payments | F | V | CE | V | - | V | V |
 | Proof verification | F | - | A | - | - | - | V |
 | Receipts & certificates | F | V | C | - | - | - | V |
 | Beneficiaries & applications | F | C | V | - | C | V | V |
