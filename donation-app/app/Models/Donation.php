@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
@@ -29,7 +30,8 @@ use Illuminate\Support\Carbon;
  * - BR-05: once settled (paid / refunded), amount, fund, campaign, donor and method are frozen.
  * - Donations are never deleted.
  * - status, refunded_amount and the *_at / confirmed_by fields change only through
- *   DonationService (Week 3, Day 2) — they are not mass-assignable.
+ *   DonationService — they are not mass-assignable.
+ * - Refunds are separate DonationRefund records; amount never changes (BR-05).
  *
  * @property int $id
  * @property string $donation_no
@@ -166,6 +168,14 @@ class Donation extends Model
     public function confirmer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    /**
+     * @return HasMany<DonationRefund, $this>
+     */
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(DonationRefund::class)->orderBy('id');
     }
 
     /**
