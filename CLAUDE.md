@@ -128,6 +128,8 @@ composer fix              # apply pint
 php artisan horizon       # queues (once Redis is configured)
 php artisan scribe:generate
 php artisan ledger:verify   # check every balance/total against the ledger (also runs nightly)
+php artisan payments:check-stale --now   # settle/expire unfinished gateway payments (also every 5 min)
+php artisan schedule:work  # run the scheduler locally
 ```
 
 Local queue/cache/session use the `database` driver; Redis + Horizon are for staging/production.

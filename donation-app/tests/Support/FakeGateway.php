@@ -32,6 +32,10 @@ final class FakeGateway implements PaymentGateway
 
     public ?GatewayResult $nextStatus = null;
 
+    public bool $failToQuery = false;
+
+    public int $queries = 0;
+
     public function __construct(
         private readonly PaymentMethod $method = PaymentMethod::JazzCash,
         public bool $enabled = true,
@@ -124,6 +128,12 @@ final class FakeGateway implements PaymentGateway
 
     public function queryStatus(Payment $payment): GatewayResult
     {
+        $this->queries++;
+
+        if ($this->failToQuery) {
+            throw new RuntimeException('Gateway unreachable');
+        }
+
         return $this->nextStatus ?? new GatewayResult(GatewayOutcome::Pending, $payment->reference);
     }
 

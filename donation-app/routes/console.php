@@ -31,3 +31,9 @@ Schedule::command('ledger:verify')
     ->timezone('Asia/Karachi')
     ->withoutOverlapping()
     ->onOneServer();
+
+// FR-PAY-02: settle gateway payments the donor left unfinished (status inquiry, then expiry).
+Schedule::command('payments:check-stale')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
