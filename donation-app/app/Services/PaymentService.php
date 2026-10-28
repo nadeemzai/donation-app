@@ -45,9 +45,12 @@ class PaymentService
      * The gateway is called OUTSIDE any database transaction (it is a network call);
      * if it fails the payment is marked failed and the error is re-thrown.
      *
+     * Pass $walletNumber and $cnicLast6 to charge the donor's wallet directly (mobile app);
+     * leave them out to use the gateway's hosted page (website).
+     *
      * @return array{0: Payment, 1: CheckoutInstruction}
      */
-    public function initiate(Donation $donation, string $returnUrl): array
+    public function initiate(Donation $donation, string $returnUrl, ?string $walletNumber = null, ?string $cnicLast6 = null): array
     {
         $method = $donation->payment_method;
 
@@ -57,6 +60,16 @@ class PaymentService
 
         if ($donation->status !== DonationStatus::Pending) {
             throw new DomainException("Donation {$donation->donation_no} is {$donation->status->label()}, so it cannot be paid.");
+        }
+
+        $directWallet = $walletNumber !== null || $cnicLast6 !== null;
+
+        if ($directWallet && preg_match('/^03\d{9}$/', (string) $walletNumber) !== 1) {
+            throw new DomainException('Enter the wallet number as 03XXXXXXXXX (11 digits).');
+        }
+
+        if ($directWallet && preg_match('/^\d{6}$/', (string) $cnicLast6) !== 1) {
+            throw new DomainException('Enter the last 6 digits of the CNIC.');
         }
 
         $gateway = $this->gateways->forCheckout($method);
@@ -75,8 +88,10 @@ class PaymentService
             currency: $donation->currency,
             description: "Donation {$donation->donation_no}",
             returnUrl: $returnUrl,
-            mobileNumber: $donation->donor->phone,
+            mobileNumber: $directWallet ? $walletNumber : $donation->donor->phone,
             email: $donation->donor->email,
+            directWallet: $directWallet,
+            cnicLast6: $cnicLast6,
         );
 
         try {
@@ -88,6 +103,11 @@ class PaymentService
         }
 
         $this->move($payment, PaymentStatus::Pending);
+
+        // A direct wallet charge may already be decided (donor approved during the call).
+        if ($instruction->result !== null) {
+            $payment = $this->applyResult($payment, $instruction->result);
+        }
 
         return [$payment, $instruction];
     }
