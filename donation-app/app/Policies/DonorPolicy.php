@@ -32,6 +32,12 @@ class DonorPolicy
         return $user->can('donors.update');
     }
 
+    /** FR-DNR-04: merge a duplicate into this donor. */
+    public function merge(User $user, Donor $donor): bool
+    {
+        return $user->can('donors.update') && ! $donor->isMerged() && ! $donor->trashed();
+    }
+
     public function delete(User $user, Donor $donor): bool
     {
         return $user->can('donors.delete');

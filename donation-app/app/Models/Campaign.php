@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * An appeal that collects money into one fund (FR-CMP-02, BR-01).
@@ -47,10 +49,14 @@ use Illuminate\Support\Str;
  * @property-read Fund $fund
  */
 #[Fillable(['fund_id', 'title', 'slug', 'summary', 'story', 'goal_amount', 'starts_at', 'ends_at', 'is_featured'])]
-class Campaign extends Model
+class Campaign extends Model implements HasMedia
 {
     /** @use HasFactory<CampaignFactory> */
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, HasFactory, InteractsWithMedia, SoftDeletes;
+
+    public const COVER = 'cover';
+
+    public const GALLERY = 'gallery';
 
     protected $attributes = [
         'status' => 'draft',
@@ -88,6 +94,34 @@ class Campaign extends Model
         }
 
         return $slug;
+    }
+
+    /**
+     * Cover: one image shown on cards and the campaign page. Gallery: up to 12 photos.
+     * Stored on the public disk — these images are shown on the public website.
+     */
+    public function registerMediaCollections(): void
+    {
+        $images = ['image/jpeg', 'image/png', 'image/webp'];
+
+        $this->addMediaCollection(self::COVER)
+            ->singleFile()
+            ->acceptsMimeTypes($images)
+            ->useDisk('public');
+
+        $this->addMediaCollection(self::GALLERY)
+            ->acceptsMimeTypes($images)
+            ->useDisk('public');
+    }
+
+    public function hasCover(): bool
+    {
+        return $this->hasMedia(self::COVER);
+    }
+
+    public function isEditable(): bool
+    {
+        return $this->status !== CampaignStatus::Closed;
     }
 
     /**

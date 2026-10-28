@@ -148,4 +148,6 @@ Local queue/cache/session use the `database` driver; Redis + Horizon are for sta
 - Settings pages extend `App\Filament\Support\BaseSettingsPage`; saves are logged (log name `settings`) with secrets masked.
 - The activity log is read-only for everyone and kept 7 years (`config/activitylog.php`). Never delete activity rows.
 - Public numbers come only from `NumberSequenceService::next(SequenceKey::…)` — never from IDs. Call it inside the same transaction that saves the record.
+- **Donor merge (FR-DNR-04):** every new table with a `donor_id` (donations, recurring plans, receipts, tax certificates, Qurbani bookings…) must be re-pointed in `DonorMergeService::moveRelatedRecords()`, with a test. A merged donor is archived with `merged_into_id`; never hard-delete it.
+- Scheduled jobs live in `routes/console.php` (Asia/Karachi). Production needs one cron line: `* * * * * php artisan schedule:run`.
 - The MySQL concurrency test (`tests/Feature/Numbering/NumberSequenceConcurrencyTest.php`) is skipped on SQLite and runs in GitHub Actions.

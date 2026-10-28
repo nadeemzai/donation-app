@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * A progress post on a campaign (FR-CMP-04). Unpublished (published_at null) = draft.
@@ -26,10 +28,29 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['campaign_id', 'title', 'body', 'published_at', 'created_by'])]
-class CampaignUpdate extends Model
+class CampaignUpdate extends Model implements HasMedia
 {
     /** @use HasFactory<CampaignUpdateFactory> */
-    use Auditable, HasFactory;
+    use Auditable, HasFactory, InteractsWithMedia;
+
+    public const PHOTOS = 'photos';
+
+    /** Up to 8 photos per update, shown on the public website. */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::PHOTOS)
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
+    }
+
+    public function statusLabel(): string
+    {
+        return match (true) {
+            $this->published_at === null => 'Draft',
+            $this->published_at->isFuture() => 'Scheduled',
+            default => 'Published',
+        };
+    }
 
     /**
      * @return BelongsTo<Campaign, $this>

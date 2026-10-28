@@ -26,6 +26,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -93,7 +94,7 @@ class DonorResource extends Resource
                 ->schema([
                     TextInput::make('cnic')
                         ->label('CNIC')
-                        ->placeholder('35202-1234567-1')
+                        ->placeholder('XXXXX-XXXXXXX-X')
                         ->mask('99999-9999999-9')
                         ->rule(fn (?Donor $record): Closure => self::cnicRule($record))
                         ->helperText(fn (?Donor $record): ?string => $record?->maskedCnic() !== null
@@ -142,6 +143,10 @@ class DonorResource extends Resource
                     ->state(fn (Donor $record): ?string => $record->maskedCnic())
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('mergedInto.donor_code')
+                    ->label('Merged into')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')->label('Added')->date()->sortable(),
             ])
             ->filters([
@@ -154,6 +159,11 @@ class DonorResource extends Resource
                         true: fn (Builder $query): Builder => $query->whereNotNull('password'),
                         false: fn (Builder $query): Builder => $query->whereNull('password'),
                     ),
+                Filter::make('possible_duplicates')
+                    ->label('Possible duplicates (same name)')
+                    ->query(fn (Builder $query): Builder => $query->whereRaw(
+                        'LOWER(TRIM(name)) IN (SELECT LOWER(TRIM(d2.name)) FROM donors d2 WHERE d2.deleted_at IS NULL GROUP BY LOWER(TRIM(d2.name)) HAVING COUNT(*) > 1)'
+                    )),
                 TrashedFilter::make(),
             ])
             ->recordActions([
@@ -211,7 +221,7 @@ class DonorResource extends Resource
             }
 
             if (! is_string($value) || ! Cnic::isValid($value)) {
-                $fail('Enter a 13-digit CNIC, e.g. 35202-1234567-1.');
+                $fail('Enter the 13-digit CNIC as XXXXX-XXXXXXX-X.');
 
                 return;
             }
