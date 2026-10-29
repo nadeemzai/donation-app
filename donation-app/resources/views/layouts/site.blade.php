@@ -20,6 +20,7 @@
     <meta property="og:description" content="{{ $description }}">
     @hasSection('og_image')<meta property="og:image" content="@yield('og_image')">@endif
     <meta name="theme-color" content="#e5254b">
+    @stack('head')
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
