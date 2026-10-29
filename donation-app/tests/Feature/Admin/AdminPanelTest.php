@@ -9,7 +9,7 @@ use Filament\Facades\Filament;
 it('shows the branded admin login page', function () {
     $this->get('/admin/login')
         ->assertOk()
-        ->assertSee('Donation Management');
+        ->assertSee('Imdaad');
 });
 
 it('redirects guests from the admin panel to the login page', function () {

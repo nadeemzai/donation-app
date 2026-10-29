@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 // FR-ACC-03 — settings exist with safe defaults
 
 it('loads defaults for every settings group', function () {
-    expect(app(GeneralSettings::class)->org_name)->toBe('Donation Management')
+    expect(app(GeneralSettings::class)->org_name)->toBe('Imdaad')
         ->and(app(NumberingSettings::class))
         ->donation_prefix->toBe('DN')
         ->receipt_prefix->toBe('RC')

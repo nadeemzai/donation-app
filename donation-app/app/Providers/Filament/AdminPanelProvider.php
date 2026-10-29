@@ -6,6 +6,7 @@ namespace App\Providers\Filament;
 
 use App\Http\Middleware\RequireMfaForPrivilegedRoles;
 use App\Http\Middleware\SecurityHeaders;
+use App\Settings\GeneralSettings;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -54,7 +55,9 @@ class AdminPanelProvider extends PanelProvider
             ->multiFactorAuthentication([
                 AppAuthentication::make()->recoverable(),
             ])
-            ->brandName('Donation Management')
+            // Name from Settings → General ("Imdaad"); same favicon as the public website.
+            ->brandName(fn (): string => app(GeneralSettings::class)->org_name ?: 'Imdaad')
+            ->favicon(asset('favicon.svg'))
             ->colors([
                 'primary' => Color::hex('#1F3A68'),
                 'info' => Color::hex('#2B5BA8'),
