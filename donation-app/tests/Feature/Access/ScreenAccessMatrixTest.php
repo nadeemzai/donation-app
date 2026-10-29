@@ -32,6 +32,7 @@ function adminScreens(): array
         'message templates' => ['/admin/message-templates', 'cms', 'view_any'],
         'message log' => ['/admin/message-logs', 'donors', 'view_any'],
         'tax certificates' => ['/admin/tax-certificates', 'receipts', 'view_any'],
+        'banners' => ['/admin/banners', 'cms', 'view_any'],
     ];
 }
 

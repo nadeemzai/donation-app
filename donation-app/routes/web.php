@@ -3,11 +3,21 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Payments\GatewayReturnController;
+use App\Http\Controllers\Site\CampaignController;
+use App\Http\Controllers\Site\FundController;
+use App\Http\Controllers\Site\HomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+/*
+|--------------------------------------------------------------------------
+| Public website (Week 6)
+|--------------------------------------------------------------------------
+*/
+Route::get('/', HomeController::class)->name('home');
+Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
+Route::get('campaigns/{campaign:slug}', [CampaignController::class, 'show'])->name('campaigns.show');
+Route::get('ways-to-give', [FundController::class, 'index'])->name('funds.index');
+Route::get('ways-to-give/{code}', [FundController::class, 'show'])->where('code', '[A-Za-z0-9_-]{1,30}')->name('funds.show');
 
 /*
 |--------------------------------------------------------------------------
