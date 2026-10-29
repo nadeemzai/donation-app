@@ -130,6 +130,7 @@ php artisan scribe:generate
 php artisan ledger:verify   # check every balance/total against the ledger (also runs nightly)
 php artisan payments:check-stale --now   # settle/expire unfinished gateway payments (also every 5 min)
 php artisan schedule:work  # run the scheduler locally
+php artisan tax-certificates:generate 2025 --now   # FY 2025-26 certificates (generate only; Finance sends from the admin)
 ```
 
 Local queue/cache/session use the `database` driver; Redis + Horizon are for staging/production.

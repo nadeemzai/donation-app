@@ -31,6 +31,7 @@ function adminScreens(): array
         'proof queue' => ['/admin/proof-queue', 'proof_verification', 'view_any'],
         'message templates' => ['/admin/message-templates', 'cms', 'view_any'],
         'message log' => ['/admin/message-logs', 'donors', 'view_any'],
+        'tax certificates' => ['/admin/tax-certificates', 'receipts', 'view_any'],
     ];
 }
 
