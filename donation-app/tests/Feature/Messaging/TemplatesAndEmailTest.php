@@ -56,9 +56,9 @@ function messagingDonor(array $prefs = [], ?string $email = 'ayesha@example.org'
 
 // ── templates ───────────────────────────────────────────────────────────
 
-it('comes with the three starter templates', function () {
+it('comes with the starter templates', function () {
     expect(MessageTemplate::query()->orderBy('id')->pluck('key')->all())
-        ->toBe([MessageTemplate::THANK_YOU_RECEIPT, MessageTemplate::PAYMENT_FAILED, MessageTemplate::PROOF_REJECTED]);
+        ->toBe([MessageTemplate::THANK_YOU_RECEIPT, MessageTemplate::PAYMENT_FAILED, MessageTemplate::PROOF_REJECTED, MessageTemplate::TAX_CERTIFICATE]);
 
     foreach (MessageTemplate::all() as $template) {
         foreach (MessageTemplate::TEXT_FIELDS as $field) {

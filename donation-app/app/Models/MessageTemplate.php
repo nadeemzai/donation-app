@@ -43,6 +43,8 @@ class MessageTemplate extends Model
 
     public const PROOF_REJECTED = 'proof_rejected';
 
+    public const TAX_CERTIFICATE = 'tax_certificate';
+
     /** Placeholder => what it becomes (shown to staff on the edit screen). */
     public const PLACEHOLDERS = [
         'donor_name' => 'Donor name',
@@ -54,6 +56,8 @@ class MessageTemplate extends Model
         'date' => 'Date of the donation',
         'reason' => 'Reason (rejected proof, failed payment)',
         'org_name' => 'Your organisation name',
+        'fiscal_year' => 'Fiscal year, e.g. 2025-26 (tax certificate)',
+        'certificate_no' => 'Tax certificate number',
     ];
 
     /** Fields that contain placeholders. */

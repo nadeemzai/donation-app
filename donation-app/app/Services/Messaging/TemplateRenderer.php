@@ -7,6 +7,7 @@ namespace App\Services\Messaging;
 use App\Models\Donation;
 use App\Models\MessageTemplate;
 use App\Models\Receipt;
+use App\Models\TaxCertificate;
 use App\Settings\GeneralSettings;
 use App\Support\Money;
 
@@ -57,6 +58,22 @@ class TemplateRenderer
     }
 
     /**
+     * Placeholder values for an annual tax certificate.
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForCertificate(TaxCertificate $certificate): array
+    {
+        return [
+            'donor_name' => $certificate->donor->name,
+            'amount' => Money::rupees((string) $certificate->total),
+            'certificate_no' => $certificate->certificate_no,
+            'fiscal_year' => $certificate->fiscalYear()->label(),
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
      * Sample values for the preview on the edit screen.
      *
      * @return array<string, string|null>
@@ -73,6 +90,8 @@ class TemplateRenderer
             'date' => now()->format('d M Y'),
             'reason' => 'Amount on the slip does not match',
             'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+            'fiscal_year' => '2025-26',
+            'certificate_no' => 'TC-'.now()->year.'-000017',
         ];
     }
 
