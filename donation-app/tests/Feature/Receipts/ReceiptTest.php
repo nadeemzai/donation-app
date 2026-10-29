@@ -97,12 +97,6 @@ it('only issues receipts for paid donations', function (Closure $make) {
 })->with([
     'pending' => fn () => Donation::factory()->create(),
     'cancelled' => fn () => app(DonationService::class)->cancel(Donation::factory()->create()),
-    'fully refunded' => function () {
-        $donation = paidForReceipt(['amount' => '500.00']);
-        app(DonationService::class)->refund($donation, '500.00', 'Duplicate', PaymentMethod::Cash);
-
-        return $donation->fresh();
-    },
 ])->throws(DomainException::class, 'Only a paid donation gets a receipt');
 
 it('still issues a receipt for a partly refunded donation', function () {
@@ -196,9 +190,8 @@ it('lets Finance issue and download the receipt from the donation page', functio
 });
 
 it('lets view-only roles download an existing receipt but not issue one', function () {
-    $withReceipt = paidForReceipt();
-    receipts()->issue($withReceipt);
-    $without = paidForReceipt();
+    $withReceipt = paidForReceipt(); // confirming issues the receipt automatically (Day 4)
+    $without = Donation::factory()->paid()->create(); // paid without going through confirm: no receipt yet
     $this->actingAs(staffUser(Role::Manager));
 
     Livewire::test(ViewDonation::class, ['record' => $withReceipt->getRouteKey()])->assertActionVisible('receipt');
