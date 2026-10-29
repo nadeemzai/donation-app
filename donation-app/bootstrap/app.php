@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\Api\PrepareApiRequest;
 use App\Http\Middleware\SecurityHeaders;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
@@ -23,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [SecurityHeaders::class]);
         // Payment gateways post their results to /payments/* without our CSRF token.
         $middleware->validateCsrfTokens(except: ['payments/*']);
-        $middleware->api(append: [SecurityHeaders::class]);
+        $middleware->api(prepend: [PrepareApiRequest::class], append: [SecurityHeaders::class]);
         // Logged-out visitors to the donor portal go to its login page (the admin panel
         // has its own login). There is no generic "login" route.
         $middleware->redirectGuestsTo(fn (): string => route('donor.login'));
@@ -54,15 +55,39 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 $status = $e->getStatusCode();
                 // 404 never echoes internals (model class names, route paths).
-                $message = $status !== 404 && $e->getMessage() !== '' ? $e->getMessage() : match ($status) {
-                    403 => 'Forbidden.',
+                $message = match ($status) {
+                    403 => $e->getMessage() !== '' && $e->getMessage() !== 'This action is unauthorized.' ? $e->getMessage() : 'Forbidden.',
                     404 => 'Not found.',
                     405 => 'Method not allowed.',
-                    429 => 'Too many requests.',
-                    default => 'Request failed.',
+                    429 => 'Too many requests. Please wait a moment and try again.',
+                    default => $e->getMessage() !== '' ? $e->getMessage() : 'Request failed.',
                 };
 
-                return ApiResponse::error($message, $status);
+                /** @var array<string, string> $headers */
+                $headers = $e->getHeaders();
+                $meta = isset($headers['Retry-After']) ? ['retry_after' => (int) $headers['Retry-After']] : [];
+
+                return ApiResponse::error($message, $status, meta: $meta, headers: $headers);
+            }
+
+            return null;
+        });
+
+        // A business rule said no (DonationService, PaymentService…): the message is
+        // written for people, so the app can show it as is.
+        $exceptions->render(function (DomainException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return ApiResponse::error($e->getMessage(), 422);
+            }
+
+            return null;
+        });
+
+        // Anything else: a plain 500 in the envelope. Details stay in the log (with the
+        // request id); in local debugging the real message is shown.
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if ($request->is('api/*') && ! config('app.debug')) {
+                return ApiResponse::error('Something went wrong on our side. Please try again.', 500);
             }
 
             return null;
