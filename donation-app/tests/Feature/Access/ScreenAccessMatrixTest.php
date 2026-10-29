@@ -33,6 +33,7 @@ function adminScreens(): array
         'message log' => ['/admin/message-logs', 'donors', 'view_any'],
         'tax certificates' => ['/admin/tax-certificates', 'receipts', 'view_any'],
         'banners' => ['/admin/banners', 'cms', 'view_any'],
+        'zakat rates' => ['/admin/settings/zakat', 'cms', 'view_any'],
     ];
 }
 

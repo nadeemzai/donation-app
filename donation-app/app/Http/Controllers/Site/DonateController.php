@@ -78,6 +78,8 @@ class DonateController extends Controller
             'bank' => app(GatewaySettings::class),
             'presets' => config('donation.donate.presets'),
             'minAmount' => (int) config('donation.donate.min'),
+            // ?amount=12500 from the Zakat calculator. Whole rupees only.
+            'prefillAmount' => old('amount', preg_match('/^\d{1,9}$/', $request->string('amount')->toString()) === 1 ? $request->string('amount')->toString() : ''),
             'idempotencyKey' => old('idempotency_key') ?: (string) Str::uuid(),
             'notice' => $notice,
         ]);
