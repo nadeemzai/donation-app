@@ -19,7 +19,7 @@ class HomeController extends Controller
     public function __invoke(): View
     {
         $campaigns = Campaign::query()->live()
-            ->with(['fund', 'media'])
+            ->with(['fund.media', 'media'])
             ->orderByDesc('is_featured')
             ->orderBy('ends_at')
             ->limit(6)
@@ -28,7 +28,7 @@ class HomeController extends Controller
         return view('site.home', [
             'banners' => Banner::query()->showing()->with('media')->get(),
             'campaigns' => $campaigns,
-            'funds' => Fund::query()->active()->get(),
+            'funds' => Fund::query()->active()->with('media')->get(),
             'stats' => Cache::remember('site.home.stats', now()->addMinutes(10), fn (): array => $this->stats()),
         ]);
     }

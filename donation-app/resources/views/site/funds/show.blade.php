@@ -2,10 +2,12 @@
 
 @section('title', $fund->name)
 @section('description', $fund->description ?: __('Give to the :fund fund.', ['fund' => $fund->name]))
+@section('og_image', $fund->imageUrl())
 
 @section('content')
     <section class="bg-brand-50/60">
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div class="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:px-8">
+            <div>
             <nav class="text-sm text-ink-500"><a href="{{ route('funds.index') }}" class="hover:text-brand-700">{{ __('Ways to give') }}</a></nav>
             <div class="mt-3 flex flex-wrap items-center gap-3">
                 <h1 class="font-display text-4xl font-bold">{{ $fund->name }}</h1>
@@ -19,6 +21,8 @@
                 <p class="mt-3 max-w-2xl text-sm text-ink-700"><strong>{{ __('Used only for') }}:</strong> {{ $fund->restriction }}</p>
             @endif
             <a href="{{ Route::has('donate') ? route('donate', ['fund' => strtolower($fund->code)]) : route('campaigns.index') }}" class="btn-primary mt-8">{{ __('Give to :fund', ['fund' => $fund->name]) }}</a>
+            </div>
+            <img src="{{ $fund->imageUrl() }}" alt="" class="aspect-[16/10] w-full rounded-3xl object-cover shadow-sm ring-1 ring-ink-900/5">
         </div>
     </section>
 

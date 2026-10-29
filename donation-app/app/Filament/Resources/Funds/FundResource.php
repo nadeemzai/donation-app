@@ -14,6 +14,7 @@ use Closure;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -24,6 +25,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -94,6 +96,20 @@ class FundResource extends Resource
                         ->label('Active — shown to donors')
                         ->default(true),
                 ]),
+            Section::make('Website photo')
+                ->description('Shown on the home page, Ways to give and the fund page. Use a real photo of the people this fund helps — e.g. the widows you support for a widows fund — taken with their consent and showing them with dignity. Until one is uploaded, a built-in illustration for the fund type is used.')
+                ->columnSpanFull()
+                ->schema([
+                    SpatieMediaLibraryFileUpload::make('image')
+                        ->hiddenLabel()
+                        ->collection(Fund::IMAGE)
+                        ->image()
+                        ->imageEditor()
+                        ->imageEditorAspectRatios(['16:10'])
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                        ->maxSize(4096)
+                        ->helperText('Landscape, at least 1200 × 750 px (JPG, PNG or WebP, up to 4 MB).'),
+                ]),
         ]);
     }
 
@@ -103,6 +119,12 @@ class FundResource extends Resource
             ->defaultSort('sort_order')
             ->columns([
                 TextColumn::make('code')->searchable()->sortable()->weight('bold'),
+                ImageColumn::make('photo')
+                    ->label('')
+                    ->state(fn (Fund $record): string => $record->imageUrl())
+                    ->width(64)
+                    ->height(40)
+                    ->extraImgAttributes(['class' => 'rounded-md object-cover']),
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('type')->badge(),
                 IconColumn::make('is_zakat')->label('Zakat')->boolean(),
