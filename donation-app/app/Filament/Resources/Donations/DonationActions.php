@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Donations;
 
+use App\Enums\DonationStatus;
 use App\Enums\PaymentMethod;
 use App\Models\Donation;
+use App\Models\Receipt;
 use App\Models\User;
 use App\Services\DonationService;
+use App\Services\ReceiptService;
 use App\Support\Money;
 use DomainException;
 use Filament\Actions\Action;
@@ -18,8 +21,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 /**
  * Confirm / Cancel / Refund / Proof buttons, shared by the donations list and the view page.
@@ -180,6 +185,45 @@ final class DonationActions
 
                 $record->refresh();
                 Notification::make()->success()->title('Refund recorded')->body(Money::rupees((string) $refund->amount).' refunded on '.$record->donation_no.'.')->send();
+            });
+    }
+
+    /**
+     * Download the receipt PDF; issues it first if the donation is paid and has none yet.
+     */
+    public static function receipt(): Action
+    {
+        return Action::make('receipt')
+            ->label(fn (Donation $record): string => $record->receipt !== null ? 'Receipt' : 'Issue receipt')
+            ->icon(Heroicon::OutlinedDocumentText)
+            ->color('gray')
+            ->visible(function (Donation $record): bool {
+                $user = self::user();
+
+                if ($user === null) {
+                    return false;
+                }
+
+                return $record->receipt !== null
+                    ? $user->can('view', $record->receipt)
+                    : $user->can('create', Receipt::class) && in_array($record->status, [DonationStatus::Paid, DonationStatus::PartiallyRefunded], true);
+            })
+            ->action(function (Donation $record): ?BinaryFileResponse {
+                $receipts = app(ReceiptService::class);
+
+                try {
+                    $receipt = $record->receipt ?? $receipts->issue($record, self::user());
+                    $file = $receipts->file($receipt);
+                } catch (Throwable $e) {
+                    report($e);
+                    Notification::make()->danger()->title('Receipt not ready')->body($e->getMessage())->send();
+
+                    return null;
+                }
+
+                $record->refresh();
+
+                return response()->download(Storage::disk($file['disk'])->path($file['path']), $file['name']);
             });
     }
 
