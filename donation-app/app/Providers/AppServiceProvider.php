@@ -10,7 +10,10 @@ use App\Payments\GatewayRegistry;
 use App\Payments\Gateways\Easypaisa\EasypaisaGateway;
 use App\Payments\Gateways\JazzCash\JazzCashGateway;
 use App\Policies\ActivityPolicy;
+use App\Settings\NotificationSettings;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Activitylog\Models\Activity;
 
@@ -40,5 +43,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Vendor model — not picked up by policy auto-discovery.
         Gate::policy(Activity::class, ActivityPolicy::class);
+
+        // WhatsApp pacing (FR-NTF-01): one shared limit for the whole system.
+        RateLimiter::for('whatsapp', fn (): Limit => Limit::perMinute(max(1, app(NotificationSettings::class)->whatsapp_rate_per_minute)));
     }
 }
