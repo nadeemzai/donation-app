@@ -77,6 +77,12 @@ class Donor extends Authenticatable
         });
     }
 
+    /** Donor allowed WhatsApp messages (receipts, updates). Off unless they said yes. */
+    public function wantsWhatsApp(): bool
+    {
+        return ($this->preferences['whatsapp_opt_in'] ?? false) === true;
+    }
+
     /** "35202-•••••••-1" — for screens; the full CNIC is never displayed. */
     public function maskedCnic(): ?string
     {

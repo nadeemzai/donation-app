@@ -23,6 +23,9 @@ class NotificationSettings extends Settings
 
     public ?string $green_api_token_instance;
 
+    /** File upload host from the Green API console; empty = same as green_api_url. */
+    public ?string $green_api_media_url;
+
     public int $whatsapp_rate_per_minute;
 
     public ?string $sms_provider;

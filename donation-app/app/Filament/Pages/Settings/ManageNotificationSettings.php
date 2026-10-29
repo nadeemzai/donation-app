@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages\Settings;
 
+use App\Enums\MessageStatus;
 use App\Filament\Support\BaseSettingsPage;
+use App\Models\User;
 use App\Services\GreenApi\GreenApiClient;
+use App\Services\Messaging\WhatsAppService;
 use App\Settings\NotificationSettings;
+use App\Support\PakistanPhone;
 use BackedEnum;
+use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -49,7 +54,39 @@ class ManageNotificationSettings extends BaseSettingsPage
                 ->icon(Heroicon::OutlinedSignal)
                 ->color('gray')
                 ->action(fn () => $this->checkWhatsApp()),
+            Action::make('testWhatsApp')
+                ->label('Send test message')
+                ->icon(Heroicon::OutlinedPaperAirplane)
+                ->color('gray')
+                ->modalHeading('Send a WhatsApp test message')
+                ->modalDescription('Sent straight away, to a number you choose. Save your settings first.')
+                ->schema([
+                    TextInput::make('phone')
+                        ->label('Mobile number')
+                        ->placeholder('03001234567')
+                        ->tel()
+                        ->required()
+                        ->rule(fn () => function (string $attribute, mixed $value, Closure $fail): void {
+                            if (! PakistanPhone::isValid(is_string($value) ? $value : null)) {
+                                $fail('Enter a Pakistani mobile number, e.g. 03001234567.');
+                            }
+                        }),
+                ])
+                ->modalSubmitActionLabel('Send')
+                ->action(fn (array $data) => $this->sendTestWhatsApp((string) $data['phone'])),
         ];
+    }
+
+    public function sendTestWhatsApp(string $phone): void
+    {
+        $user = auth()->user();
+        $log = app(WhatsAppService::class)->sendTest($phone, $user instanceof User ? $user : null);
+
+        match ($log->status) {
+            MessageStatus::Sent => Notification::make()->success()->title('Test message sent')->body('Check WhatsApp on '.$phone.'.')->send(),
+            MessageStatus::Skipped => Notification::make()->warning()->title('Not sent')->body((string) $log->error)->send(),
+            default => Notification::make()->danger()->title('Sending failed')->body((string) $log->error)->send(),
+        };
     }
 
     public function checkWhatsApp(): void
@@ -94,6 +131,11 @@ class ManageNotificationSettings extends BaseSettingsPage
                 ->columnSpanFull()
                 ->schema([
                     TextInput::make('green_api_url')->label('API URL')->url()->required()->maxLength(200),
+                    TextInput::make('green_api_media_url')
+                        ->label('Media URL (file uploads)')
+                        ->url()
+                        ->maxLength(200)
+                        ->helperText('Shown in the Green API console, e.g. https://7103.media.green-api.com. Leave empty to use the API URL.'),
                     TextInput::make('green_api_id_instance')->label('Instance ID')->maxLength(50),
                     $secret('green_api_token_instance', 'API token'),
                     TextInput::make('whatsapp_rate_per_minute')
