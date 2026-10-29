@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Payments\GatewayReturnController;
 use App\Http\Controllers\Site\CampaignController;
+use App\Http\Controllers\Site\ContactController;
 use App\Http\Controllers\Site\DonateController;
 use App\Http\Controllers\Site\DonorAuthController;
 use App\Http\Controllers\Site\DonorPortalController;
 use App\Http\Controllers\Site\FundController;
 use App\Http\Controllers\Site\HomeController;
+use App\Http\Controllers\Site\PageController;
+use App\Http\Controllers\Site\SeoController;
 use App\Http\Controllers\Site\ZakatController;
+use App\Models\Page;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -73,3 +77,15 @@ Route::prefix('payments')->name('payments.')->middleware('throttle:60,1')->group
         ->where('reference', '[A-Za-z0-9]{1,30}')
         ->name('result');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Search engines, contact form and admin-edited pages (Week 6 Day 5)
+|--------------------------------------------------------------------------
+| /{page} must stay LAST: it answers any free single-word address (about, contact…).
+| Addresses the app uses are excluded by Page::routePattern().
+*/
+Route::get('sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
+Route::get('robots.txt', [SeoController::class, 'robots'])->name('robots');
+Route::post('contact-message', [ContactController::class, 'store'])->middleware('throttle:5,1')->name('contact.store');
+Route::get('{page}', [PageController::class, 'show'])->where('page', Page::routePattern())->name('pages.show');
