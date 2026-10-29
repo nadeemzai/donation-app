@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Http\Controllers\Payments\GatewayReturnController;
 use App\Http\Controllers\Site\CampaignController;
 use App\Http\Controllers\Site\DonateController;
+use App\Http\Controllers\Site\DonorAuthController;
+use App\Http\Controllers\Site\DonorPortalController;
 use App\Http\Controllers\Site\FundController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\ZakatController;
@@ -32,6 +34,28 @@ Route::get('donate/thank-you/{number}', [DonateController::class, 'thanks'])
     ->where('number', '[A-Za-z0-9-]{1,30}')
     ->middleware('signed')
     ->name('donate.thanks');
+
+/*
+|--------------------------------------------------------------------------
+| Donor portal — "My donations" (Week 6 Day 4)
+|--------------------------------------------------------------------------
+| Login is by one-time code (WhatsApp or email); guard "donor".
+*/
+Route::prefix('my-donations')->name('donor.')->group(function (): void {
+    Route::get('login', [DonorAuthController::class, 'showLogin'])->name('login');
+    Route::post('login', [DonorAuthController::class, 'sendCode'])->middleware('throttle:10,1')->name('login.send');
+    Route::get('verify', [DonorAuthController::class, 'showVerify'])->name('verify');
+    Route::post('verify', [DonorAuthController::class, 'verify'])->middleware('throttle:10,1')->name('verify.check');
+    Route::post('logout', [DonorAuthController::class, 'logout'])->name('logout');
+
+    Route::middleware('auth:donor')->group(function (): void {
+        Route::get('/', [DonorPortalController::class, 'dashboard'])->name('dashboard');
+        Route::get('receipts/{receipt}', [DonorPortalController::class, 'receipt'])->whereNumber('receipt')->name('receipts.download');
+        Route::get('tax-certificates/{certificate}', [DonorPortalController::class, 'certificate'])->whereNumber('certificate')->name('certificates.download');
+        Route::get('profile', [DonorPortalController::class, 'profile'])->name('profile');
+        Route::put('profile', [DonorPortalController::class, 'updateProfile'])->name('profile.update');
+    });
+});
 
 /*
 |--------------------------------------------------------------------------
