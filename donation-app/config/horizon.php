@@ -208,8 +208,10 @@ return [
             'maxTime' => 0,
             'maxJobs' => 0,
             'memory' => 128,
-            'tries' => 1,
-            'timeout' => 60,
+            'tries' => 1, // jobs set their own tries / retryUntil
+            // Longest job (PDF in headless Chrome, WhatsApp upload) is 120s. Keep this below
+            // the queue's retry_after (180s, config/queue.php) so a job is never run twice.
+            'timeout' => 150,
             'nice' => 0,
         ],
     ],

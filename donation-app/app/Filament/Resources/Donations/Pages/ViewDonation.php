@@ -36,6 +36,7 @@ class ViewDonation extends ViewRecord
             DonationActions::confirm(),
             DonationActions::cancel(),
             DonationActions::refund(),
+            DonationActions::receipt(),
             DonationActions::downloadProof(),
         ];
     }
