@@ -33,7 +33,7 @@ function raceEnv(): array
         'DB_PASSWORD' => (string) $mysql['password'],
         'CACHE_STORE' => 'array',
         'SESSION_DRIVER' => 'array',
-        'QUEUE_CONNECTION' => 'sync',
+        'QUEUE_CONNECTION' => 'null', // receipts/messages are not part of the race — don't run them
     ];
 }
 

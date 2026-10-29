@@ -7,9 +7,11 @@ namespace App\Filament\Resources\Donations;
 use App\Enums\DonationStatus;
 use App\Enums\PaymentMethod;
 use App\Models\Donation;
+use App\Models\MessageLog;
 use App\Models\Receipt;
 use App\Models\User;
 use App\Services\DonationService;
+use App\Services\Messaging\DonationMessages;
 use App\Services\ReceiptService;
 use App\Support\Money;
 use DomainException;
@@ -124,7 +126,7 @@ final class DonationActions
             ->modalSubmitActionLabel('Reject proof')
             ->action(function (Donation $record, array $data): void {
                 try {
-                    app(DonationService::class)->cancel($record, 'Proof rejected: '.(string) $data['reason'], self::user());
+                    app(DonationService::class)->cancel($record, DonationService::PROOF_REJECTED_PREFIX.(string) $data['reason'], self::user());
                 } catch (DomainException $e) {
                     Notification::make()->danger()->title('Not rejected')->body($e->getMessage())->send();
 
@@ -224,6 +226,41 @@ final class DonationActions
                 $record->refresh();
 
                 return response()->download(Storage::disk($file['disk'])->path($file['path']), $file['name']);
+            });
+    }
+
+    /**
+     * Send the thank-you + receipt again on the donor's channels (e.g. donor lost it,
+     * or fixed their phone number). Opt-ins still apply.
+     */
+    public static function resend(): Action
+    {
+        return Action::make('resend')
+            ->label('Resend receipt')
+            ->icon(Heroicon::OutlinedPaperAirplane)
+            ->color('gray')
+            ->visible(fn (Donation $record): bool => (self::user()?->can('create', Receipt::class) ?? false)
+                && in_array($record->status, [DonationStatus::Paid, DonationStatus::PartiallyRefunded], true))
+            ->requiresConfirmation()
+            ->modalHeading(fn (Donation $record): string => "Resend the receipt for {$record->donation_no}?")
+            ->modalDescription('Sent on WhatsApp (if the donor opted in) and email (unless they turned it off).')
+            ->modalSubmitActionLabel('Resend')
+            ->action(function (Donation $record): void {
+                try {
+                    $logs = app(DonationMessages::class)->thankYou($record, resend: true, by: self::user());
+                } catch (Throwable $e) {
+                    report($e);
+                    Notification::make()->danger()->title('Not sent')->body($e->getMessage())->send();
+
+                    return;
+                }
+
+                $lines = array_map(
+                    fn (MessageLog $log): string => $log->channel->getLabel().': '.$log->status->getLabel().($log->error !== null ? ' — '.$log->error : ''),
+                    $logs,
+                );
+
+                Notification::make()->success()->title('Receipt resent')->body(implode("\n", $lines) ?: 'This message is switched off in Message templates.')->send();
             });
     }
 

@@ -14,6 +14,7 @@ use App\Filament\Resources\Donations\Pages\ViewDonation;
 use App\Models\Campaign;
 use App\Models\Donation;
 use App\Models\Donor;
+use App\Models\MessageLog;
 use App\Models\User;
 use App\Support\Money;
 use BackedEnum;
@@ -185,6 +186,23 @@ class DonationResource extends Resource
                     TextEntry::make('dedication')->placeholder('—'),
                     TextEntry::make('donor_note')->label('Donor note')->placeholder('—'),
                     TextEntry::make('staff_note')->label('Staff note')->placeholder('—')->columnSpanFull(),
+                ]),
+            Section::make('Messages to the donor')
+                ->columnSpanFull()
+                ->collapsible()
+                ->visible(fn (Donation $record): bool => $record->messages()->exists())
+                ->schema([
+                    RepeatableEntry::make('messages')
+                        ->hiddenLabel()
+                        ->columns(4)
+                        ->schema([
+                            TextEntry::make('created_at')->label('When')->dateTime('d M Y, h:i A'),
+                            TextEntry::make('channel')->badge()->color('gray'),
+                            TextEntry::make('template'),
+                            TextEntry::make('status')->badge(),
+                            TextEntry::make('error')->label('Error / reason')->placeholder('—')->columnSpanFull()
+                                ->visible(fn (MessageLog $record): bool => $record->error !== null),
+                        ]),
                 ]),
             Section::make('Refunds')
                 ->columnSpanFull()

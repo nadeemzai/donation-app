@@ -8,6 +8,7 @@ use App\Enums\CampaignStatus;
 use App\Enums\DonationChannel;
 use App\Enums\DonationStatus;
 use App\Enums\PaymentMethod;
+use App\Events\DonationClosed;
 use App\Events\DonationPaid;
 use App\Events\DonationRefunded;
 use App\Models\Campaign;
@@ -36,6 +37,9 @@ use Illuminate\Support\Facades\DB;
  */
 class DonationService
 {
+    /** Cancel reason prefix for rejected bank-transfer proof (the donor is told why). */
+    public const PROOF_REJECTED_PREFIX = 'Proof rejected: ';
+
     public function __construct(private readonly FundLedgerService $ledger) {}
 
     /**
@@ -371,6 +375,8 @@ class DonationService
                 ->log($reason !== null && $reason !== ''
                     ? "Donation {$locked->donation_no} {$next->value}: {$reason}"
                     : "Donation {$locked->donation_no} {$next->value}");
+
+            DonationClosed::dispatch($locked, $next, $reason);
 
             return $locked;
         });

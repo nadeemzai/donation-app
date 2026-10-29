@@ -192,6 +192,16 @@ class Donation extends Model implements HasMedia
     }
 
     /**
+     * WhatsApp / email messages about this donation.
+     *
+     * @return MorphMany<MessageLog, $this>
+     */
+    public function messages(): MorphMany
+    {
+        return $this->morphMany(MessageLog::class, 'subject')->latest('id');
+    }
+
+    /**
      * @return HasOne<Receipt, $this>
      */
     public function receipt(): HasOne
