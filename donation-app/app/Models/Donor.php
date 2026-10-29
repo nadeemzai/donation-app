@@ -77,6 +77,18 @@ class Donor extends Authenticatable
         });
     }
 
+    /** Messages in Urdu when the donor chose it (preferences.language = "ur"). */
+    public function prefersUrdu(): bool
+    {
+        return ($this->preferences['language'] ?? 'en') === 'ur';
+    }
+
+    /** Email is on unless the donor turned it off. */
+    public function acceptsEmail(): bool
+    {
+        return ($this->preferences['email_opt_in'] ?? true) !== false;
+    }
+
     /** Donor allowed WhatsApp messages (receipts, updates). Off unless they said yes. */
     public function wantsWhatsApp(): bool
     {

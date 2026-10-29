@@ -26,6 +26,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $subject_type
  * @property int|null $subject_id
  * @property string|null $recipient
+ * @property string|null $email_subject
  * @property string|null $body
  * @property string|null $attachment_disk
  * @property string|null $attachment_path
@@ -39,7 +40,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property-read Donor|null $donor
  */
-#[Fillable(['channel', 'template', 'donor_id', 'subject_type', 'subject_id', 'recipient', 'body', 'attachment_disk', 'attachment_path', 'attachment_name', 'created_by'])]
+#[Fillable(['channel', 'template', 'donor_id', 'subject_type', 'subject_id', 'recipient', 'email_subject', 'body', 'attachment_disk', 'attachment_path', 'attachment_name', 'created_by'])]
 class MessageLog extends Model
 {
     /** @use HasFactory<MessageLogFactory> */

@@ -6,6 +6,7 @@ namespace App\Filament\Pages\Settings;
 
 use App\Enums\MessageStatus;
 use App\Filament\Support\BaseSettingsPage;
+use App\Filament\Widgets\MessagingStats;
 use App\Models\User;
 use App\Services\GreenApi\GreenApiClient;
 use App\Services\Messaging\WhatsAppService;
@@ -75,6 +76,14 @@ class ManageNotificationSettings extends BaseSettingsPage
                 ->modalSubmitActionLabel('Send')
                 ->action(fn (array $data) => $this->sendTestWhatsApp((string) $data['phone'])),
         ];
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    protected function getHeaderWidgets(): array
+    {
+        return [MessagingStats::class];
     }
 
     public function sendTestWhatsApp(string $phone): void
