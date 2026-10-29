@@ -14,7 +14,7 @@ class FundController extends Controller
 {
     public function index(): View
     {
-        return view('site.funds.index', ['funds' => Fund::query()->active()->withCount(['campaigns' => fn ($q) => $q->live()])->get()]);
+        return view('site.funds.index', ['funds' => Fund::query()->active()->with('media')->withCount(['campaigns' => fn ($q) => $q->live()])->get()]);
     }
 
     public function show(string $code): View
@@ -23,7 +23,7 @@ class FundController extends Controller
 
         return view('site.funds.show', [
             'fund' => $fund,
-            'campaigns' => Campaign::query()->live()->where('fund_id', $fund->id)->with(['fund', 'media'])->orderBy('ends_at')->get(),
+            'campaigns' => Campaign::query()->live()->where('fund_id', $fund->id)->with(['fund.media', 'media'])->orderBy('ends_at')->get(),
         ]);
     }
 }

@@ -9,9 +9,7 @@
         @if ($cover)
             <img src="{{ $cover }}" alt="" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
         @else
-            <div class="flex h-full items-center justify-center bg-gradient-to-br from-brand-100 to-brand-200">
-                <img src="{{ asset('images/imdaad-mark.svg') }}" alt="" class="h-16 w-16 opacity-80">
-            </div>
+            <img src="{{ $campaign->fund->imageUrl() }}" alt="" loading="lazy" class="h-full w-full object-cover transition duration-500 group-hover:scale-105">
         @endif
         <span class="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-brand-700">{{ $campaign->fund->name }}</span>
     </a>

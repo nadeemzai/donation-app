@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use App\Enums\DonationChannel;
+use App\Enums\FundType;
 use App\Enums\PaymentMethod;
 use App\Enums\Role;
 use App\Filament\Resources\Banners\Pages\CreateBanner;
 use App\Filament\Resources\Banners\Pages\ListBanners;
+use App\Filament\Resources\Funds\Pages\EditFund;
 use App\Models\Banner;
 use App\Models\Campaign;
 use App\Models\CampaignUpdate;
@@ -217,4 +219,55 @@ it('reorders banners by dragging', function () {
     Livewire::test(ListBanners::class)->call('reorderTable', [(string) $b->id, (string) $a->id]);
 
     expect($b->fresh()->sort_order)->toBeLessThan($a->fresh()->sort_order);
+});
+
+// ── fund pictures ───────────────────────────────────────────────────────
+
+it('gives every fund a picture for its type until a photo is uploaded', function (Closure $make, string $file) {
+    expect($make()->imageUrl())->toEndWith("/images/funds/{$file}.svg");
+})->with([
+    'zakat' => [fn () => Fund::factory()->zakat()->create(), 'zakat'],
+    'sadqa' => [fn () => Fund::factory()->sadqa()->create(), 'sadqa'],
+    'general' => [fn () => Fund::factory()->create(), 'general'],
+    'restricted' => [fn () => Fund::factory()->restricted()->create(), 'restricted'],
+]);
+
+it('ships an illustration for every fund type', function () {
+    foreach (FundType::cases() as $type) {
+        expect(public_path("images/funds/{$type->value}.svg"))->toBeFile();
+    }
+});
+
+it('shows the uploaded fund photo on the website instead of the illustration', function () {
+    $fund = Fund::factory()->create(['name' => 'Widows Support']);
+    $fund->addMedia(UploadedFile::fake()->image('widows.jpg', 1200, 750))->toMediaCollection(Fund::IMAGE);
+
+    expect($fund->fresh()?->imageUrl())->toContain('widows.jpg');
+
+    $this->get('/ways-to-give')->assertOk()->assertSee('widows.jpg');
+    $this->get('/ways-to-give/'.strtolower($fund->code))->assertOk()->assertSee('widows.jpg');
+});
+
+it('uses the fund picture for a campaign without its own cover', function () {
+    $fund = Fund::factory()->zakat()->create();
+    Campaign::factory()->live()->create(['fund_id' => $fund->id, 'title' => 'No Cover Appeal']);
+
+    $this->get('/campaigns')->assertOk()->assertSee('/images/funds/zakat.svg', false);
+});
+
+it('lets staff upload a fund photo in the admin', function () {
+    $fund = Fund::factory()->create();
+    $this->actingAs(staffUser(Role::Finance));
+
+    Livewire::test(EditFund::class, ['record' => $fund->getRouteKey()])
+        ->fillForm(['image' => UploadedFile::fake()->image('orphans.jpg', 1200, 750)])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    // Filament stores uploads under a random file name, so check the media itself.
+    $media = $fund->fresh()?->getFirstMedia(Fund::IMAGE);
+    expect($media)->not->toBeNull()
+        ->and($media?->disk)->toBe('public')
+        ->and($media?->mime_type)->toBe('image/jpeg')
+        ->and($fund->fresh()?->imageUrl())->not->toContain('images/funds/');
 });

@@ -28,9 +28,7 @@
                     @if ($cover)
                         <img src="{{ $cover }}" alt="" class="aspect-[16/9] w-full object-cover">
                     @else
-                        <div class="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-brand-100 to-brand-200">
-                            <img src="{{ asset('images/imdaad-mark.svg') }}" alt="" class="h-24 w-24 opacity-80">
-                        </div>
+                        <img src="{{ $campaign->fund->imageUrl() }}" alt="" class="aspect-[16/9] w-full object-cover">
                     @endif
                 </div>
 

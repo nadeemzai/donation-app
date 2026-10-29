@@ -22,7 +22,7 @@ class CampaignController extends Controller
         $fund = $fundCode !== '' ? Fund::query()->active()->where('code', $fundCode)->first() : null;
 
         $campaigns = Campaign::query()->live()
-            ->with(['fund', 'media'])
+            ->with(['fund.media', 'media'])
             ->when($fund, fn ($q) => $q->where('fund_id', $fund?->id))
             ->orderByDesc('is_featured')
             ->orderBy('ends_at')
@@ -40,7 +40,7 @@ class CampaignController extends Controller
     {
         abort_if($campaign->status === CampaignStatus::Draft, 404);
 
-        $campaign->load(['fund', 'media']);
+        $campaign->load(['fund.media', 'media']);
 
         return view('site.campaigns.show', [
             'campaign' => $campaign,

@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * A money bucket (FR-CMP-01). Every donation is credited to exactly one fund (BR-01).
@@ -39,10 +41,13 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  */
 #[Fillable(['code', 'name', 'type', 'restriction', 'description', 'is_active', 'sort_order'])]
-class Fund extends Model
+class Fund extends Model implements HasMedia
 {
     /** @use HasFactory<FundFactory> */
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, HasFactory, InteractsWithMedia, SoftDeletes;
+
+    /** Photo shown on the website (home, Ways to give, fund page, campaign cards without a cover). */
+    public const IMAGE = 'image';
 
     /** New funds start empty; also true for an unsaved/unrefreshed model. */
     protected $attributes = [
@@ -65,6 +70,25 @@ class Fund extends Model
                 throw new DomainException('A restricted fund must say what the money may be used for.');
             }
         });
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::IMAGE)
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
+    }
+
+    /**
+     * The uploaded photo, or the built-in illustration for the fund type
+     * (public/images/funds/{type}.svg) until staff upload one.
+     */
+    public function imageUrl(): string
+    {
+        $uploaded = $this->getFirstMediaUrl(self::IMAGE);
+
+        return $uploaded !== '' ? $uploaded : asset('images/funds/'.$this->type->value.'.svg');
     }
 
     /**
