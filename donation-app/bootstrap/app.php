@@ -24,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // Payment gateways post their results to /payments/* without our CSRF token.
         $middleware->validateCsrfTokens(except: ['payments/*']);
         $middleware->api(append: [SecurityHeaders::class]);
+        // Logged-out visitors to the donor portal go to its login page (the admin panel
+        // has its own login). There is no generic "login" route.
+        $middleware->redirectGuestsTo(fn (): string => route('donor.login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

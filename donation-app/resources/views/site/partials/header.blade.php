@@ -28,7 +28,7 @@
 
         <div class="flex items-center gap-2">
             @if ($accountUrl)
-                <a href="{{ $accountUrl }}" class="hidden rounded-full px-4 py-2 text-[15px] font-medium text-ink-700 hover:text-brand-700 sm:inline-flex">{{ __('My account') }}</a>
+                <a href="{{ $accountUrl }}" class="hidden rounded-full px-4 py-2 text-[15px] font-medium text-ink-700 hover:text-brand-700 sm:inline-flex">{{ __('My donations') }}</a>
             @endif
             <a href="{{ $donateUrl }}" class="btn-primary px-5 py-2.5 text-[15px]">
                 <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 17.3l-1.2-1.1C4.5 12.4 1.7 9.8 1.7 6.7A4.1 4.1 0 015.8 2.5c1.6 0 3.1.7 4.2 1.9a5.6 5.6 0 014.2-1.9 4.1 4.1 0 014.1 4.2c0 3.1-2.8 5.7-7.1 9.5L10 17.3z"/></svg>
@@ -48,7 +48,7 @@
                 <a href="{{ $item['url'] }}" @class(['block rounded-xl px-4 py-3 text-base font-medium', 'bg-brand-50 text-brand-700' => $item['active'], 'text-ink-700' => ! $item['active']])>{{ $item['label'] }}</a>
             @endforeach
             @if ($accountUrl)
-                <a href="{{ $accountUrl }}" class="block rounded-xl px-4 py-3 text-base font-medium text-ink-700">{{ __('My account') }}</a>
+                <a href="{{ $accountUrl }}" class="block rounded-xl px-4 py-3 text-base font-medium text-ink-700">{{ __('My donations') }}</a>
             @endif
         </div>
     </nav>
