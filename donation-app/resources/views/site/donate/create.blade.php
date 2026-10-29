@@ -46,7 +46,7 @@
         step: {{ $startStep }},
         campaign: @js((string) old('campaign_id', $campaign?->id ?? '')),
         fund: @js((string) ($selectedFund ?? '')),
-        amount: @js((string) old('amount', '')),
+        amount: @js((string) $prefillAmount),
         method: @js($oldMethod),
         name: @js((string) old('name', '')),
         phone: @js((string) old('phone', '')),

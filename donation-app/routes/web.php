@@ -7,6 +7,7 @@ use App\Http\Controllers\Site\CampaignController;
 use App\Http\Controllers\Site\DonateController;
 use App\Http\Controllers\Site\FundController;
 use App\Http\Controllers\Site\HomeController;
+use App\Http\Controllers\Site\ZakatController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,6 +20,10 @@ Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.i
 Route::get('campaigns/{campaign:slug}', [CampaignController::class, 'show'])->name('campaigns.show');
 Route::get('ways-to-give', [FundController::class, 'index'])->name('funds.index');
 Route::get('ways-to-give/{code}', [FundController::class, 'show'])->where('code', '[A-Za-z0-9_-]{1,30}')->name('funds.show');
+
+// Zakat calculator (Week 6 Day 3). POST keeps the donor's figures out of URLs and logs.
+Route::get('zakat', [ZakatController::class, 'show'])->name('zakat');
+Route::post('zakat', [ZakatController::class, 'calculate'])->middleware('throttle:30,1')->name('zakat.calculate');
 
 // Donate wizard (Week 6 Day 2). ?campaign={slug} or ?fund={code} preselects the cause.
 Route::get('donate', [DonateController::class, 'create'])->name('donate');
