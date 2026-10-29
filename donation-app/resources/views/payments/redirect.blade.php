@@ -9,7 +9,7 @@
     <style>
         body { font-family: system-ui, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; color: #1f2937; }
         .box { text-align: center; padding: 24px; }
-        button { margin-top: 16px; padding: 10px 20px; font-size: 16px; border-radius: 6px; border: 0; background: #15803d; color: #fff; cursor: pointer; }
+        button { margin-top: 16px; padding: 10px 20px; font-size: 16px; border-radius: 6px; border: 0; background: #cc1a3f; color: #fff; cursor: pointer; }
     </style>
 </head>
 <body>

@@ -26,4 +26,13 @@ return [
         'rate_per_minute' => (int) env('WHATSAPP_RATE_PER_MINUTE', 20),
     ],
 
+    // Public donate form (Week 6 Day 2). Whole rupees.
+    'donate' => [
+        'presets' => [1000, 2500, 5000, 10000, 25000],
+        'min' => (int) env('DONATE_MIN_AMOUNT', 100),
+        'max' => (int) env('DONATE_MAX_AMOUNT', 5000000),
+        // Bank slip / screenshot upload limit, in kilobytes.
+        'proof_max_kb' => 5120,
+    ],
+
 ];

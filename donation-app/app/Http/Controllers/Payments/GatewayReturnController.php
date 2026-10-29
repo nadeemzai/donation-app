@@ -73,7 +73,7 @@ class GatewayReturnController extends Controller
     /** What the donor sees afterwards. Shows only the donation number, amount and status. */
     public function result(string $reference): View
     {
-        $payment = Payment::query()->with('donation')->where('reference', $reference)->first();
+        $payment = Payment::query()->with(['donation.fund', 'donation.campaign'])->where('reference', $reference)->first();
 
         return view('payments.result', ['payment' => $payment]);
     }
