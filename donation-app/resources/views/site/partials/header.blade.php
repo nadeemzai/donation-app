@@ -6,8 +6,8 @@
         ['label' => __('Campaigns'), 'url' => route('campaigns.index'), 'active' => request()->routeIs('campaigns.*')],
         ['label' => __('Ways to give'), 'url' => route('funds.index'), 'active' => request()->routeIs('funds.*')],
         Route::has('zakat') ? ['label' => __('Zakat calculator'), 'url' => route('zakat'), 'active' => request()->routeIs('zakat')] : null,
-        Route::has('pages.show') ? ['label' => __('About us'), 'url' => route('pages.show', 'about'), 'active' => request()->is('about')] : null,
-        Route::has('pages.show') ? ['label' => __('Contact'), 'url' => route('pages.show', 'contact'), 'active' => request()->is('contact')] : null,
+        $sitePages->contains('slug', 'about') ? ['label' => __('About us'), 'url' => route('pages.show', 'about'), 'active' => request()->is('about')] : null,
+        $sitePages->contains('slug', 'contact') ? ['label' => __('Contact'), 'url' => route('pages.show', 'contact'), 'active' => request()->is('contact')] : null,
     ]));
     $donateUrl = Route::has('donate') ? route('donate') : route('campaigns.index');
     $accountUrl = Route::has('donor.dashboard') ? route('donor.dashboard') : null;

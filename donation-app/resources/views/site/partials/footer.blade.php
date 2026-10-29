@@ -27,6 +27,10 @@
         <div>
             <h2 class="font-display text-sm font-semibold uppercase tracking-wider text-white">{{ __('Contact') }}</h2>
             <ul class="mt-4 space-y-2 text-sm">
+                @foreach ($sitePages->where('show_in_footer', true) as $footerPage)
+                    <li><a class="hover:text-white" href="{{ route('pages.show', $footerPage->slug) }}">{{ $footerPage->title }}</a></li>
+                @endforeach
+                @if (Route::has('donor.dashboard'))<li><a class="hover:text-white" href="{{ route('donor.dashboard') }}">{{ __('My donations') }}</a></li>@endif
                 @if ($org->address)<li>{{ $org->address }}</li>@endif
                 @if ($org->phone)<li><a class="hover:text-white" href="tel:{{ preg_replace('/[^0-9+]/', '', $org->phone) }}">{{ $org->phone }}</a></li>@endif
                 @if ($org->email)<li><a class="hover:text-white" href="mailto:{{ $org->email }}">{{ $org->email }}</a></li>@endif
