@@ -130,6 +130,31 @@ class DonorLoginService
         return Donor::query()->find((int) $entry['donor_id']); // null if archived since
     }
 
+    /**
+     * Bookkeeping after a successful login: last login time, the number/email now proven,
+     * and an audit line. $via says where: "website" or "app".
+     */
+    public function recordLogin(Donor $donor, string $identifier, string $via = 'website'): void
+    {
+        $byEmail = str_contains($identifier, '@');
+
+        // Query update: login bookkeeping shouldn't fill the donor's change history.
+        Donor::query()->whereKey($donor->id)->update(array_filter([
+            'last_login_at' => now(),
+            'email_verified_at' => $byEmail && $donor->email_verified_at === null ? now() : null,
+            'phone_verified_at' => ! $byEmail && $donor->phone_verified_at === null ? now() : null,
+        ]));
+
+        activity('audit')
+            ->performedOn($donor)
+            ->causedBy($donor)
+            ->event('donor_login')
+            ->withProperties(['via' => $byEmail ? 'email' : 'phone', 'where' => $via])
+            ->log($via === 'app'
+                ? "Donor {$donor->donor_code} logged in to the mobile app"
+                : "Donor {$donor->donor_code} logged in to the donor portal");
+    }
+
     /** Same matching as website donations: phone or email; merges lead to the survivor; archived → none. */
     private function find(string $identifier): ?Donor
     {

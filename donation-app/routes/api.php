@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,4 +19,16 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function (): void {
     Route::get('health', HealthController::class)->name('health');
+
+    // Auth (Week 7 Day 2): one-time code → Sanctum token.
+    Route::prefix('auth')->name('auth.')->group(function (): void {
+        Route::middleware('throttle:api-auth')->group(function (): void {
+            Route::post('register', [AuthController::class, 'register'])->name('register');
+            Route::post('login', [AuthController::class, 'login'])->name('login');
+            Route::post('otp/send', [AuthController::class, 'sendCode'])->name('otp.send');
+            Route::post('otp/verify', [AuthController::class, 'verify'])->name('otp.verify');
+        });
+
+        Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
+    });
 });
