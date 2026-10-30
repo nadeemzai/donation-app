@@ -35,6 +35,10 @@ return [
         'proof_max_kb' => 5120,
     ],
 
+    // API docs at /docs, /docs.postman and /docs.openapi (Week 7 Day 5). Always on outside
+    // production; on the live site only when this is true.
+    'api_docs_public' => (bool) env('API_DOCS_PUBLIC', false),
+
     // Mobile app (Week 7): the app asks the donor to update below min_version.
     'app' => [
         'min_version' => env('APP_MIN_VERSION', '1.0.0'),

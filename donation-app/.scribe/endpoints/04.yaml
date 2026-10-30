@@ -1,0 +1,385 @@
+name: Donate
+description: |-
+
+  Giving from the app (Week 7 Day 4).
+
+  1. `POST /donations` → the donation, and what to do next (`next_step`):
+     - `wait`: a wallet charge was sent — the donor approves it on their phone; poll `status_url`.
+     - `open_checkout`: open `checkout` (the gateway's page) in a web view; then poll `status_url`.
+     - `upload_proof`: bank transfer — show `bank`, then send the screenshot to `proof_url`.
+  2. Poll `GET status_url` every few seconds until `is_final` is true.
+
+  `status_url` and `proof_url` are signed links valid for 7 days — use them exactly as given.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/donations
+    metadata:
+      custom: []
+      groupName: Donate
+      groupDescription: |-
+
+        Giving from the app (Week 7 Day 4).
+
+        1. `POST /donations` → the donation, and what to do next (`next_step`):
+           - `wait`: a wallet charge was sent — the donor approves it on their phone; poll `status_url`.
+           - `open_checkout`: open `checkout` (the gateway's page) in a web view; then poll `status_url`.
+           - `upload_proof`: bank transfer — show `bank`, then send the screenshot to `proof_url`.
+        2. Poll `GET status_url` every few seconds until `is_final` is true.
+
+        `status_url` and `proof_url` are signed links valid for 7 days — use them exactly as given.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Start a donation'
+      description: |-
+        Works with or without a donor token. Without one, `name` and `phone` are required and
+        the donor is matched by phone/email exactly like the website (an existing donor's
+        record is never changed from here). Send a fresh UUID as `Idempotency-Key` for every new
+        donation; sending the same key again returns the same donation (safe retries).
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      fund_code:
+        custom: []
+        name: fund_code
+        description: 'Give to this fund. Either this or campaign_slug. This field is required when <code>campaign_slug</code> is not present. Must not be greater than 30 characters.'
+        required: false
+        example: ZAKAT
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      campaign_slug:
+        custom: []
+        name: campaign_slug
+        description: 'Give to this live campaign (its fund is used). Must not be greater than 120 characters.'
+        required: false
+        example: winter-relief-2026
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      amount:
+        custom: []
+        name: amount
+        description: 'Rupees; commas allowed; up to 2 decimals. Must match the regex /^\d{1,9}(\.\d{1,2})?$/. Must be at least 100. Must not be greater than 5000000.'
+        required: true
+        example: 5000.0
+        type: number
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      payment_method:
+        custom: []
+        name: payment_method
+        description: 'One of the methods in /app/config.'
+        required: true
+        example: jazzcash
+        type: string
+        enumValues:
+          - bank_transfer
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      wallet_number:
+        custom: []
+        name: wallet_number
+        description: 'Charge this JazzCash/Easypaisa wallet directly (with cnic_last6). Leave out to get the hosted payment page instead. This field is required when <code>cnic_last6</code> is present. Must match the regex /^03\d{9}$/.'
+        required: false
+        example: '03001234567'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      cnic_last6:
+        custom: []
+        name: cnic_last6
+        description: "Last 6 digits of the wallet owner's CNIC. Passed to the gateway, never stored. This field is required when <code>wallet_number</code> is present. Must be 6 digits."
+        required: false
+        example: '345671'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      name:
+        custom: []
+        name: name
+        description: 'Required without a donor token. Must be at least 2 characters. Must not be greater than 120 characters.'
+        required: true
+        example: 'Ayesha Khan'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      phone:
+        custom: []
+        name: phone
+        description: 'Required without a donor token. Must not be greater than 20 characters.'
+        required: true
+        example: 0300-1234567
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      email:
+        custom: []
+        name: email
+        description: 'Optional. Must be a valid email address. Must not be greater than 255 characters.'
+        required: false
+        example: ayesha@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      cnic:
+        custom: []
+        name: cnic
+        description: 'Optional, for tax certificates (new donors only). Must not be greater than 20 characters.'
+        required: false
+        example: 35202-1234567-1
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      whatsapp_opt_in:
+        custom: []
+        name: whatsapp_opt_in
+        description: 'New donors: receipts on WhatsApp.'
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      is_anonymous:
+        custom: []
+        name: is_anonymous
+        description: "Hide the donor's name in public lists."
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      dedication:
+        custom: []
+        name: dedication
+        description: 'On behalf of / in memory of. Must not be greater than 150 characters.'
+        required: false
+        example: 'My late father'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      idempotency_key:
+        custom: []
+        name: idempotency_key
+        description: 'A UUID; or send it as the Idempotency-Key header. Repeating it returns the same donation. Must be a valid UUID.'
+        required: true
+        example: 3f2b9f7c-8d1e-4a55-9c3e-1d2f3a4b5c6d
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      fund_code: ZAKAT
+      campaign_slug: winter-relief-2026
+      amount: 5000.0
+      payment_method: jazzcash
+      wallet_number: '03001234567'
+      cnic_last6: '345671'
+      name: 'Ayesha Khan'
+      phone: 0300-1234567
+      email: ayesha@example.com
+      cnic: 35202-1234567-1
+      whatsapp_opt_in: true
+      is_anonymous: false
+      dedication: 'My late father'
+      idempotency_key: 3f2b9f7c-8d1e-4a55-9c3e-1d2f3a4b5c6d
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: '{"success":true,"data":{"donation":{"number":"DN-2026-000123","status":{"value":"pending","label":"Pending"}},"next_step":"wait","payment":{"reference":"PAY8F3K2","status":{"value":"pending","label":"Pending"}},"checkout":{"type":"awaiting_donor","url":null,"fields":[],"message":"Approve the payment in your JazzCash app."},"status_url":"https://…/api/v1/donations/DN-2026-000123/status?expires=…&signature=…","proof_url":null,"bank":null},"message":"Donation started.","errors":null,"meta":{}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/donations/{number}/status'
+    metadata:
+      custom: []
+      groupName: Donate
+      groupDescription: |-
+
+        Giving from the app (Week 7 Day 4).
+
+        1. `POST /donations` → the donation, and what to do next (`next_step`):
+           - `wait`: a wallet charge was sent — the donor approves it on their phone; poll `status_url`.
+           - `open_checkout`: open `checkout` (the gateway's page) in a web view; then poll `status_url`.
+           - `upload_proof`: bank transfer — show `bank`, then send the screenshot to `proof_url`.
+        2. Poll `GET status_url` every few seconds until `is_final` is true.
+
+        `status_url` and `proof_url` are signed links valid for 7 days — use them exactly as given.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Donation status'
+      description: |-
+        Poll this (the signed `status_url`) every 5 seconds or so until `is_final` is true.
+        If the gateway's answer hasn't arrived after half a minute, we ask the gateway ourselves.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      number:
+        custom: []
+        name: number
+        description: ''
+        required: true
+        example: DN-2026-000123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      number: DN-2026-000123
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 403
+        content: '{"success":false,"data":null,"message":"Invalid signature.","errors":null,"meta":{}}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-frame-options: SAMEORIGIN
+          x-content-type-options: nosniff
+          referrer-policy: strict-origin-when-cross-origin
+          permissions-policy: 'camera=(), microphone=(), geolocation=(), payment=()'
+          x-ratelimit-limit: '60'
+          x-ratelimit-remaining: '59'
+          x-request-id: 2e9fde8a-4fa3-4fe8-8a7b-59a6f6ca60b9
+          x-api-version: v1
+          content-language: en
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/donations/{number}/proof'
+    metadata:
+      custom: []
+      groupName: Donate
+      groupDescription: |-
+
+        Giving from the app (Week 7 Day 4).
+
+        1. `POST /donations` → the donation, and what to do next (`next_step`):
+           - `wait`: a wallet charge was sent — the donor approves it on their phone; poll `status_url`.
+           - `open_checkout`: open `checkout` (the gateway's page) in a web view; then poll `status_url`.
+           - `upload_proof`: bank transfer — show `bank`, then send the screenshot to `proof_url`.
+        2. Poll `GET status_url` every few seconds until `is_final` is true.
+
+        `status_url` and `proof_url` are signed links valid for 7 days — use them exactly as given.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Upload transfer proof'
+      description: |-
+        For a pending bank transfer / Raast donation: the transaction ID and a screenshot.
+        Finance checks it and the receipt follows. One proof per donation.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: multipart/form-data
+      Accept: application/json
+    urlParameters:
+      number:
+        custom: []
+        name: number
+        description: ''
+        required: true
+        example: DN-2026-000123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      number: DN-2026-000123
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      reference:
+        custom: []
+        name: reference
+        description: 'Transaction ID from the bank or wallet app. Must not be greater than 100 characters.'
+        required: true
+        example: RAAST-88120044
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      proof:
+        custom: []
+        name: proof
+        description: 'Screenshot or photo (JPG, PNG, WebP or PDF, max 5 MB). Must be a file. Must not be greater than 5120 kilobytes.'
+        required: true
+        example: null
+        type: file
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      reference: RAAST-88120044
+    fileParameters:
+      proof: null
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null

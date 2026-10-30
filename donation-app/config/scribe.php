@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\ApiDocsVisible;
 use Knuckles\Scribe\Config\AuthIn;
 use Knuckles\Scribe\Config\Defaults;
 use Knuckles\Scribe\Extracting\Strategies;
@@ -92,7 +93,8 @@ return [
         'assets_directory' => null,
 
         // Middleware to attach to the docs endpoint (if `add_routes` is true).
-        'middleware' => [],
+        // Hidden on the live site unless API_DOCS_PUBLIC=true (see ApiDocsVisible).
+        'middleware' => [ApiDocsVisible::class],
     ],
 
     'external' => [
@@ -191,7 +193,7 @@ return [
         // You can override this by listing the groups, subgroups and endpoints here in the order you want them.
         // See https://scribe.knuckles.wtf/blog/laravel-v4#easier-sorting and https://scribe.knuckles.wtf/laravel/reference/config#order for details
         // Note: does not work for `external` docs types
-        'order' => [],
+        'order' => ['App', 'Auth', 'Catalog', 'Content', 'Donate', 'Me', 'Devices'],
     ],
 
     // Custom logo path. This will be used as the value of the src attribute for the <img> tag,

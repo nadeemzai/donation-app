@@ -1,0 +1,125 @@
+name: Devices
+description: ''
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/devices
+    metadata:
+      custom: []
+      groupName: Devices
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Register this device'
+      description: |-
+        Safe to call on every launch. A token already registered to another donor (a shared
+        phone) moves to the donor logged in now.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      token:
+        custom: []
+        name: token
+        description: 'Firebase Cloud Messaging (or APNs) token. Must not be greater than 255 characters.'
+        required: true
+        example: 'fcm:dQw4w9WgXcQ…'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      platform:
+        custom: []
+        name: platform
+        description: 'android or ios.'
+        required: true
+        example: android
+        type: string
+        enumValues:
+          - android
+          - ios
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      app_version:
+        custom: []
+        name: app_version
+        description: 'App version string. Must not be greater than 20 characters.'
+        required: false
+        example: 1.0.3
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      token: 'fcm:dQw4w9WgXcQ…'
+      platform: android
+      app_version: 1.0.3
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: api/v1/devices
+    metadata:
+      custom: []
+      groupName: Devices
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Remove this device'
+      description: 'Call before logging out so this phone stops getting notifications.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      token:
+        custom: []
+        name: token
+        description: 'The push token to remove.'
+        required: true
+        example: 'fcm:dQw4w9WgXcQ…'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      token: 'fcm:dQw4w9WgXcQ…'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
