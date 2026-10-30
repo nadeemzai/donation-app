@@ -9,6 +9,7 @@ use App\Support\ApiFormat;
 use App\Support\SafeHtml;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * A published progress update on a campaign.
@@ -30,6 +31,12 @@ class CampaignUpdateResource extends JsonResource
             'title' => $update->title,
             'body_html' => SafeHtml::clean($update->body),
             'published_at' => ApiFormat::time($update->published_at),
+            'photos' => $update->getMedia(CampaignUpdate::PHOTOS)->map(fn (Media $media): string => $media->getUrl())->values()->all(),
+            // In the impact feed (several campaigns) the app needs to know which one.
+            'campaign' => $update->relationLoaded('campaign') ? [
+                'slug' => $update->campaign->slug,
+                'title' => $update->campaign->title,
+            ] : null,
         ];
     }
 }
