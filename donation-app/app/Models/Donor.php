@@ -131,6 +131,14 @@ class Donor extends Authenticatable
     }
 
     /**
+     * @return HasMany<DeviceToken, $this>
+     */
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
+    /**
      * @return BelongsTo<Donor, $this>
      */
     public function mergedInto(): BelongsTo

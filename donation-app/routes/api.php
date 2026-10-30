@@ -6,7 +6,10 @@ use App\Http\Controllers\Api\V1\AppConfigController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\ContentController;
+use App\Http\Controllers\Api\V1\DeviceController;
+use App\Http\Controllers\Api\V1\DonationController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\MeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -44,5 +47,24 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         });
 
         Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
+    });
+
+    // Donate (Week 7 Day 4). Token optional; status and proof use signed links.
+    Route::post('donations', [DonationController::class, 'store'])->middleware('throttle:api-donate')->name('donations.store');
+    Route::prefix('donations/{number}')->where(['number' => '[A-Za-z0-9-]{1,30}'])->middleware('signed')->name('donations.')->group(function (): void {
+        Route::get('status', [DonationController::class, 'status'])->name('status');
+        Route::post('proof', [DonationController::class, 'proof'])->middleware('throttle:api-donate')->name('proof');
+    });
+
+    // The logged-in donor (Week 7 Day 4).
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::get('me', [MeController::class, 'show'])->name('me.show');
+        Route::put('me', [MeController::class, 'update'])->name('me.update');
+        Route::get('me/donations', [MeController::class, 'donations'])->name('me.donations');
+        Route::get('me/receipts/{receipt}/download', [MeController::class, 'receipt'])->whereNumber('receipt')->name('me.receipts.download');
+        Route::get('me/tax-certificates', [MeController::class, 'certificates'])->name('me.tax-certificates');
+        Route::get('me/tax-certificates/{certificate}/download', [MeController::class, 'certificate'])->whereNumber('certificate')->name('me.tax-certificates.download');
+        Route::post('devices', [DeviceController::class, 'store'])->name('devices.store');
+        Route::delete('devices', [DeviceController::class, 'destroy'])->name('devices.destroy');
     });
 });

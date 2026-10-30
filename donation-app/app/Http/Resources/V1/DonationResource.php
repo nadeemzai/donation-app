@@ -40,7 +40,11 @@ class DonationResource extends JsonResource
             'dedication' => $donation->dedication,
             'created_at' => ApiFormat::time($donation->created_at),
             'paid_at' => ApiFormat::time($donation->paid_at),
-            'receipt' => $receipt !== null && ! $receipt->isVoid() ? ['id' => $receipt->id, 'number' => $receipt->receipt_no] : null,
+            'receipt' => $receipt !== null && ! $receipt->isVoid() ? [
+                'id' => $receipt->id,
+                'number' => $receipt->receipt_no,
+                'download_url' => route('api.v1.me.receipts.download', $receipt->id), // needs the donor's token
+            ] : null,
         ];
     }
 }

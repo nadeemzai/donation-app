@@ -125,6 +125,12 @@ class DonorMergeService
             ->where('donor_id', $duplicate->getKey())
             ->update(['donor_id' => $survivor->getKey(), 'updated_at' => now()]);
 
+        // Mobile app (Week 7): push tokens follow the donor; the duplicate's app logins end.
+        DB::table('device_tokens')
+            ->where('donor_id', $duplicate->getKey())
+            ->update(['donor_id' => $survivor->getKey(), 'updated_at' => now()]);
+        $duplicate->tokens()->delete();
+
         if ($moved > 0) {
             activity('audit')
                 ->performedOn($survivor)
