@@ -37,3 +37,9 @@ Schedule::command('payments:check-stale')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+// Week 7: remove mobile app tokens that expired more than a day ago.
+Schedule::command('sanctum:prune-expired --hours=24')
+    ->dailyAt('02:15')
+    ->timezone('Asia/Karachi')
+    ->onOneServer();

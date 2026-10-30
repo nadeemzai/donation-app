@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
-use App\Models\Donor;
 use App\Services\Site\DonorLoginService;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
@@ -90,7 +89,7 @@ class DonorAuthController extends Controller
         $request->session()->regenerate();
         $request->session()->forget(self::SESSION_KEY);
 
-        $this->recordLogin($donor, $identifier);
+        $this->login->recordLogin($donor, $identifier);
 
         return redirect()->intended(route('donor.dashboard'));
     }
@@ -102,24 +101,5 @@ class DonorAuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('home')->with('status', __('You have logged out.'));
-    }
-
-    private function recordLogin(Donor $donor, string $identifier): void
-    {
-        $byEmail = str_contains($identifier, '@');
-
-        // Query update: login bookkeeping shouldn't fill the donor's change history.
-        Donor::query()->whereKey($donor->id)->update(array_filter([
-            'last_login_at' => now(),
-            'email_verified_at' => $byEmail && $donor->email_verified_at === null ? now() : null,
-            'phone_verified_at' => ! $byEmail && $donor->phone_verified_at === null ? now() : null,
-        ]));
-
-        activity('audit')
-            ->performedOn($donor)
-            ->causedBy($donor)
-            ->event('donor_login')
-            ->withProperty('via', $byEmail ? 'email' : 'phone')
-            ->log("Donor {$donor->donor_code} logged in to the donor portal");
     }
 }
