@@ -6,6 +6,7 @@ namespace App\Support;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use stdClass;
 
@@ -37,6 +38,12 @@ final class ApiResponse
     public static function error(string $message, int $status, ?array $errors = null, array $meta = [], array $headers = []): JsonResponse
     {
         return self::make(false, null, $message, $errors, $meta, $status)->withHeaders($headers);
+    }
+
+    /** ?per_page=… from the app, kept between 1 and 50 (default 20). */
+    public static function perPage(Request $request, int $default = 20): int
+    {
+        return max(1, min(50, $request->integer('per_page', $default)));
     }
 
     /**

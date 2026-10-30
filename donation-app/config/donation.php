@@ -35,4 +35,12 @@ return [
         'proof_max_kb' => 5120,
     ],
 
+    // Mobile app (Week 7): the app asks the donor to update below min_version.
+    'app' => [
+        'min_version' => env('APP_MIN_VERSION', '1.0.0'),
+        'latest_version' => env('APP_LATEST_VERSION', '1.0.0'),
+        'android_url' => env('APP_ANDROID_URL'),
+        'ios_url' => env('APP_IOS_URL'),
+    ],
+
 ];
