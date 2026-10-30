@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 /**
  * @group Devices
  *
+ * @authenticated
+ *
  * Push notification tokens (Week 7 Day 4). Register after login and whenever the push
  * token changes; remove on logout.
  */

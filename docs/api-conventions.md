@@ -81,3 +81,66 @@ obtained with a one-time code (Week 7 Day 2). On `401`, drop the token and log i
 
 The API never returns staff notes, other donors' data, fund balances, full CNIC/NTN, or
 who recorded a donation. Asking for someone else's record returns `404`, not `403`.
+
+## Getting the docs and the Postman collection
+
+Generate after any API change: `composer docs:api` (runs `php artisan scribe:generate`).
+
+| What | Where |
+| --- | --- |
+| HTML docs (try-it-out included) | `https://<domain>/docs` |
+| Postman collection | `https://<domain>/docs.postman` — import into Postman |
+| OpenAPI 3 spec | `https://<domain>/docs.openapi` — for code generators |
+
+The docs are always open on local and staging. On the live site they are hidden unless
+`API_DOCS_PUBLIC=true`.
+
+## Endpoints (v1)
+
+| Group | Endpoint | Token |
+| --- | --- | --- |
+| App | `GET /health` · `GET /app/config` | — |
+| Catalog | `GET /banners` · `GET /funds` · `GET /campaigns` · `GET /campaigns/{slug}` · `GET /campaigns/{slug}/updates` | — |
+| Content | `GET /impact-updates` · `GET /pages/{slug}` · `POST /zakat/calculate` | — |
+| Auth | `POST /auth/register` · `POST /auth/login` · `POST /auth/otp/send` · `POST /auth/otp/verify` | — |
+| Auth | `POST /auth/logout` | ✔ |
+| Donate | `POST /donations` | optional |
+| Donate | `GET {status_url}` · `POST {proof_url}` | signed link |
+| Me | `GET /me` · `PUT /me` · `GET /me/donations` · `GET /me/receipts/{id}/download` · `GET /me/tax-certificates` · `GET /me/tax-certificates/{id}/download` | ✔ |
+| Devices | `POST /devices` · `DELETE /devices` | ✔ |
+
+`tests/Feature/Api/ApiContractTest.php` holds this list and the response shapes. It fails if an
+endpoint or a field the app relies on disappears.
+
+## Flow: logging in
+
+```
+POST /auth/login        { "identifier": "0300-1234567" }
+  → 200 { data: { sent_to: "0300•••4567", expires_in: 600 } }
+POST /auth/otp/verify   { "identifier": "0300-1234567", "code": "482913", "device_name": "Galaxy A54" }
+  → 200 { data: { token, token_type: "Bearer", expires_at, donor } }
+POST /devices           { "token": "<push token>", "platform": "android" }      (with the token)
+```
+
+New donors call `POST /auth/register` (name, phone…) instead of login; the rest is the same.
+Logging out: `DELETE /devices`, then `POST /auth/logout`.
+
+## Flow: donating
+
+```
+GET  /app/config                       → which methods are on, limits, bank details
+POST /donations                        Idempotency-Key: <new UUID>
+     { fund_code | campaign_slug, amount, payment_method, [wallet_number, cnic_last6], [name, phone] }
+  → 201 { data: { donation, next_step, payment, checkout, status_url, proof_url, bank } }
+```
+
+| `next_step` | What the app does |
+| --- | --- |
+| `wait` | Show "approve the payment in your wallet app"; poll `status_url` every `poll_after_seconds` |
+| `open_checkout` | Open `checkout.url` in a web view (for `form_post`, post `checkout.fields` to it); then poll `status_url` |
+| `upload_proof` | Show `bank` details; then `POST proof_url` (multipart: `reference`, `proof` file) |
+| `done` | Paid — show thanks; the receipt is in `donation.receipt` |
+| `closed` | Failed or cancelled — offer to try again (with a new Idempotency-Key) |
+
+Poll until `is_final` is `true`. Retrying `POST /donations` with the same Idempotency-Key never
+charges twice. If the request times out, retry with the same key.

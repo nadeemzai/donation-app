@@ -143,6 +143,8 @@ class AuthController extends Controller
      *
      * Ends this device's token. Send `all=true` to log out of every device.
      *
+     * @authenticated
+     *
      * @bodyParam all boolean Log out everywhere. Example: false
      *
      * @response 200 {"success":true,"data":null,"message":"Logged out.","errors":null,"meta":{}}

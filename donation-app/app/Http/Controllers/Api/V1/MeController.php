@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /**
  * @group Me
  *
+ * @authenticated
+ *
  * The logged-in donor (Week 7 Day 4). Needs `Authorization: Bearer {token}`.
  * Someone else's receipt or certificate is a 404, so ids can't be probed.
  */
@@ -37,6 +39,8 @@ class MeController extends Controller
      * My profile
      *
      * Profile plus totals: everything given, and this tax year.
+     *
+     * @response 200 {"success":true,"data":{"id":42,"donor_code":"DNR-2026-000042","name":"Ayesha Khan","type":{"value":"individual","label":"Individual"},"phone":"03001234567","email":"ayesha@example.com","city":"Lahore","cnic_masked":"35202-•••••••-1","has_cnic":true,"phone_verified":true,"email_verified":false,"preferences":{"language":"en","whatsapp_opt_in":true,"email_opt_in":true},"member_since":"2026-11-02","totals":{"given":{"amount":"7500.00","currency":"PKR","formatted":"Rs 7,500.00"},"this_tax_year":{"amount":"7500.00","currency":"PKR","formatted":"Rs 7,500.00"},"tax_year":"2026-27","donations":2}},"message":"","errors":null,"meta":{}}
      */
     public function show(Request $request): JsonResponse
     {
@@ -107,6 +111,8 @@ class MeController extends Controller
      * @queryParam status string Only this status, e.g. paid or pending. Example: paid
      * @queryParam page integer Example: 1
      * @queryParam per_page integer 1–50, default 20. Example: 20
+     *
+     * @response 200 {"success":true,"data":[{"number":"DN-2026-000123","status":{"value":"paid","label":"Paid"},"amount":{"amount":"5000.00","currency":"PKR","formatted":"Rs 5,000.00"},"refunded":{"amount":"0.00","currency":"PKR","formatted":"Rs 0.00"},"net":{"amount":"5000.00","currency":"PKR","formatted":"Rs 5,000.00"},"payment_method":{"value":"jazzcash","label":"JazzCash"},"channel":{"value":"mobile","label":"Mobile app"},"fund":{"code":"ZAKAT","name":"Zakat","is_zakat":true},"campaign":null,"is_anonymous":false,"dedication":null,"created_at":"2026-12-14T10:30:00+05:00","paid_at":"2026-12-14T10:31:12+05:00","receipt":{"id":15,"number":"RC-2026-000015","download_url":"https://…/api/v1/me/receipts/15/download"}}],"message":"","errors":null,"meta":{"pagination":{"current_page":1,"per_page":20,"total":1,"last_page":1,"has_more":false}}}
      */
     public function donations(Request $request): JsonResponse
     {
