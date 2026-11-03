@@ -7,6 +7,7 @@ use App\Http\Controllers\Site\CampaignController;
 use App\Http\Controllers\Site\ContactController;
 use App\Http\Controllers\Site\DonateController;
 use App\Http\Controllers\Site\DonorAuthController;
+use App\Http\Controllers\Site\DonorPledgeController;
 use App\Http\Controllers\Site\DonorPortalController;
 use App\Http\Controllers\Site\FundController;
 use App\Http\Controllers\Site\HomeController;
@@ -58,6 +59,10 @@ Route::prefix('my-donations')->name('donor.')->group(function (): void {
         Route::get('tax-certificates/{certificate}', [DonorPortalController::class, 'certificate'])->whereNumber('certificate')->name('certificates.download');
         Route::get('profile', [DonorPortalController::class, 'profile'])->name('profile');
         Route::put('profile', [DonorPortalController::class, 'updateProfile'])->name('profile.update');
+        Route::get('pledges', [DonorPledgeController::class, 'index'])->name('pledges.index');
+        Route::get('pledges/new', [DonorPledgeController::class, 'create'])->name('pledges.create');
+        Route::post('pledges', [DonorPledgeController::class, 'store'])->middleware('throttle:10,1')->name('pledges.store');
+        Route::patch('pledges/{plan}', [DonorPledgeController::class, 'update'])->whereNumber('plan')->middleware('throttle:20,1')->name('pledges.update');
     });
 });
 

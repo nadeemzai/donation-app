@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DonationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\PledgeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -64,6 +65,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::get('me/receipts/{receipt}/download', [MeController::class, 'receipt'])->whereNumber('receipt')->name('me.receipts.download');
         Route::get('me/tax-certificates', [MeController::class, 'certificates'])->name('me.tax-certificates');
         Route::get('me/tax-certificates/{certificate}/download', [MeController::class, 'certificate'])->whereNumber('certificate')->name('me.tax-certificates.download');
+        Route::get('me/recurring-plans', [PledgeController::class, 'index'])->name('me.recurring-plans.index');
+        Route::post('me/recurring-plans', [PledgeController::class, 'store'])->middleware('throttle:api-donate')->name('me.recurring-plans.store');
+        Route::get('me/recurring-plans/{plan}', [PledgeController::class, 'show'])->whereNumber('plan')->name('me.recurring-plans.show');
+        Route::patch('me/recurring-plans/{plan}', [PledgeController::class, 'update'])->whereNumber('plan')->name('me.recurring-plans.update');
         Route::post('devices', [DeviceController::class, 'store'])->name('devices.store');
         Route::delete('devices', [DeviceController::class, 'destroy'])->name('devices.destroy');
     });
