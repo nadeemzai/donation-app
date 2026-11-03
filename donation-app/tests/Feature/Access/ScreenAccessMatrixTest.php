@@ -41,6 +41,8 @@ function adminScreens(): array
         'contact messages' => ['/admin/contact-messages', 'cms', 'view_any'],
         'beneficiaries list' => ['/admin/beneficiaries', 'beneficiaries', 'view_any'],
         'beneficiaries create' => ['/admin/beneficiaries/create', 'beneficiaries', 'create'],
+        'applications list' => ['/admin/applications', 'beneficiaries', 'view_any'],
+        'applications create' => ['/admin/applications/create', 'beneficiaries', 'create'],
     ];
 }
 

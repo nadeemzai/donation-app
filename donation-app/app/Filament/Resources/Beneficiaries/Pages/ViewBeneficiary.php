@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Beneficiaries\Pages;
 
+use App\Filament\Resources\Applications\ApplicationResource;
 use App\Filament\Resources\Beneficiaries\BeneficiaryResource;
+use App\Models\Application;
 use App\Models\Beneficiary;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -39,9 +41,20 @@ class ViewBeneficiary extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->newApplicationAction(),
             $this->downloadDocumentAction(),
             EditAction::make(),
         ];
+    }
+
+    protected function newApplicationAction(): Action
+    {
+        return Action::make('newApplication')
+            ->label('New application')
+            ->icon(Heroicon::OutlinedPlus)
+            ->visible(fn (): bool => ! $this->beneficiary()->trashed()
+                && (bool) BeneficiaryResource::currentUser()?->can('create', Application::class))
+            ->url(fn (): string => ApplicationResource::getUrl('create', ['beneficiary' => $this->beneficiary()->id]));
     }
 
     /**
