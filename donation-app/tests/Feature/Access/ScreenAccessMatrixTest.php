@@ -34,6 +34,8 @@ function adminScreens(): array
         'tax certificates' => ['/admin/tax-certificates', 'receipts', 'view_any'],
         'banners' => ['/admin/banners', 'cms', 'view_any'],
         'zakat rates' => ['/admin/settings/zakat', 'cms', 'view_any'],
+        'pledges' => ['/admin/recurring-plans', 'donations', 'view_any'],
+        'pledges create' => ['/admin/recurring-plans/create', 'donations', 'create'],
         'website pages' => ['/admin/pages', 'cms', 'view_any'],
         'website pages create' => ['/admin/pages/create', 'cms', 'create'],
         'contact messages' => ['/admin/contact-messages', 'cms', 'view_any'],

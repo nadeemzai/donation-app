@@ -125,6 +125,11 @@ class DonorMergeService
             ->where('donor_id', $duplicate->getKey())
             ->update(['donor_id' => $survivor->getKey(), 'updated_at' => now()]);
 
+        // Pledges (Week 8) follow the donor too.
+        DB::table('recurring_plans')
+            ->where('donor_id', $duplicate->getKey())
+            ->update(['donor_id' => $survivor->getKey(), 'updated_at' => now()]);
+
         // Mobile app (Week 7): push tokens follow the donor; the duplicate's app logins end.
         DB::table('device_tokens')
             ->where('donor_id', $duplicate->getKey())
