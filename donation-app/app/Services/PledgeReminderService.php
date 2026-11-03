@@ -48,14 +48,24 @@ class PledgeReminderService
     ) {}
 
     /**
-     * @return array{opened: int, reminded: int, second_reminders: int, failed: int}
+     * @return array{opened: int, reminded: int, second_reminders: int, failed: int, paused: int}
      */
     public function run(): array
     {
-        $stats = ['opened' => 0, 'reminded' => 0, 'second_reminders' => 0, 'failed' => 0];
+        $stats = ['opened' => 0, 'reminded' => 0, 'second_reminders' => 0, 'failed' => 0, 'paused' => 0];
 
         // lazyById, not each(): the set shrinks as pledges move on, and offset paging would skip some.
         RecurringPlan::query()->dueBy(today())->lazyById(100)->each(function (RecurringPlan $plan) use (&$stats): void {
+            // Don't send a pay link the donation form would refuse: pause instead, so staff see it.
+            $problem = $this->cannotRemind($plan);
+
+            if ($problem !== null) {
+                $this->plans->pause($plan, $problem);
+                $stats['paused']++;
+
+                return;
+            }
+
             try {
                 $period = $this->openPeriod($plan);
             } catch (Throwable $e) {
@@ -113,12 +123,15 @@ class PledgeReminderService
         });
     }
 
-    /** Send (or repeat) the reminder for a period. False when nothing could go out. */
-    public function remind(RecurringPlanPeriod $period): bool
+    /**
+     * Send (or repeat) the reminder for a period. False when nothing could go out.
+     * $byStaff: a reminder Finance sends by hand — allowed past the automatic limit.
+     */
+    public function remind(RecurringPlanPeriod $period, bool $byStaff = false): bool
     {
         $period->loadMissing(['plan.donor', 'plan.fund', 'plan.campaign']);
 
-        if (! $period->isPayable() || $period->reminder_count >= self::MAX_REMINDERS) {
+        if (! $period->isPayable() || (! $byStaff && $period->reminder_count >= self::MAX_REMINDERS)) {
             return false;
         }
 
@@ -132,6 +145,18 @@ class PledgeReminderService
         $period->forceFill(['reminded_at' => now(), 'reminder_count' => $period->reminder_count + 1])->save();
 
         return $logs !== [];
+    }
+
+    /** Why a pledge can't be reminded today (archived donor, closed fund), or null. */
+    public function cannotRemind(RecurringPlan $plan): ?string
+    {
+        $plan->loadMissing(['donor', 'fund']);
+
+        return match (true) {
+            $plan->donor->trashed() => 'Paused automatically: the donor record is archived.',
+            $plan->fund->trashed() || ! $plan->fund->is_active => "Paused automatically: the {$plan->fund->name} fund is not taking donations.",
+            default => null,
+        };
     }
 
     /** Called when a donation is confirmed: the period it pays is now fulfilled. */

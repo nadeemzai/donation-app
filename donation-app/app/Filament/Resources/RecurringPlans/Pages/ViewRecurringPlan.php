@@ -35,7 +35,7 @@ class ViewRecurringPlan extends ViewRecord
      */
     protected function getHeaderActions(): array
     {
-        return [EditAction::make(), PledgeActions::pause(), PledgeActions::resume(), PledgeActions::cancel()];
+        return [PledgeActions::remind(), EditAction::make(), PledgeActions::pause(), PledgeActions::resume(), PledgeActions::cancel()];
     }
 
     private function plan(): RecurringPlan

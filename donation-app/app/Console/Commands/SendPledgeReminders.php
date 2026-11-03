@@ -19,8 +19,8 @@ class SendPledgeReminders extends Command
         $stats = $reminders->run();
 
         $this->info(sprintf(
-            'Pledges due: %d · reminders sent: %d · second reminders: %d · failed: %d',
-            $stats['opened'], $stats['reminded'], $stats['second_reminders'], $stats['failed'],
+            'Pledges due: %d · reminders sent: %d · second reminders: %d · paused (archived donor / closed fund): %d · failed: %d',
+            $stats['opened'], $stats['reminded'], $stats['second_reminders'], $stats['paused'], $stats['failed'],
         ));
 
         return $stats['failed'] > 0 ? self::FAILURE : self::SUCCESS;
