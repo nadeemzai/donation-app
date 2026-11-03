@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\BeneficiaryStatus;
 use App\Enums\Gender;
+use App\Enums\Role;
 use App\Enums\SequenceKey;
 use App\Enums\Vulnerability;
 use App\Models\Concerns\Auditable;
@@ -16,6 +17,7 @@ use Database\Factories\BeneficiaryFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -142,6 +144,39 @@ class Beneficiary extends Model implements HasMedia
         $this->addMediaCollection(self::DOCUMENTS)
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])
             ->useDisk('local');
+    }
+
+    /**
+     * Field officers work only their own cases (§3.1 data scope): households assigned to
+     * them or that they registered. Every other role with beneficiary access sees all.
+     */
+    public static function seesOnlyOwnCases(User $user): bool
+    {
+        return $user->hasRole(Role::FieldOfficer->value)
+            && ! $user->hasAnyRole(array_map(fn (Role $role): string => $role->value, array_filter(
+                Role::cases(),
+                fn (Role $role): bool => $role !== Role::FieldOfficer,
+            )));
+    }
+
+    public function isCaseOf(User $user): bool
+    {
+        return $this->assigned_officer_id === $user->id || $this->registered_by === $user->id;
+    }
+
+    /**
+     * @param  Builder<Beneficiary>  $query
+     * @return Builder<Beneficiary>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if (! self::seesOnlyOwnCases($user)) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $q) => $q
+            ->where('assigned_officer_id', $user->id)
+            ->orWhere('registered_by', $user->id));
     }
 
     /** "35202-•••••••-1" — the full CNIC is never shown on screens. */
