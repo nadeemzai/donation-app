@@ -12,6 +12,7 @@ use App\Services\NumberSequenceService;
 use Database\Factories\ApplicationFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -109,6 +110,34 @@ class Application extends Model
     public function isOpen(): bool
     {
         return $this->status->isOpen();
+    }
+
+    /** A field officer's own work: the application is assigned to them, or the household is their case. */
+    public function isCaseOf(User $user): bool
+    {
+        return $this->assigned_officer_id === $user->id
+            || $this->created_by === $user->id
+            || $this->beneficiary->isCaseOf($user);
+    }
+
+    /**
+     * Same data scope as beneficiaries: field officers see only their own work.
+     *
+     * @param  Builder<Application>  $query
+     * @return Builder<Application>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if (! Beneficiary::seesOnlyOwnCases($user)) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $q) => $q
+            ->where('assigned_officer_id', $user->id)
+            ->orWhere('created_by', $user->id)
+            ->orWhereHas('beneficiary', fn (Builder $b) => $b
+                ->where('assigned_officer_id', $user->id)
+                ->orWhere('registered_by', $user->id)));
     }
 
     /**

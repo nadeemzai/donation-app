@@ -12,6 +12,7 @@ use App\Filament\Resources\Beneficiaries\Pages\CreateBeneficiary;
 use App\Filament\Resources\Beneficiaries\Pages\EditBeneficiary;
 use App\Filament\Resources\Beneficiaries\Pages\ListBeneficiaries;
 use App\Filament\Resources\Beneficiaries\Pages\ViewBeneficiary;
+use App\Filament\Resources\Beneficiaries\RelationManagers\ApplicationsRelationManager;
 use App\Models\Beneficiary;
 use App\Models\User;
 use App\Support\Cnic;
@@ -325,6 +326,16 @@ class BeneficiaryResource extends Resource
                 $fail("This CNIC is already registered ({$existing}). Ask a manager if it is the same household.");
             }
         };
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            ApplicationsRelationManager::class,
+        ];
     }
 
     /**
