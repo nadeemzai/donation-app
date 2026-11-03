@@ -39,6 +39,8 @@ function adminScreens(): array
         'website pages' => ['/admin/pages', 'cms', 'view_any'],
         'website pages create' => ['/admin/pages/create', 'cms', 'create'],
         'contact messages' => ['/admin/contact-messages', 'cms', 'view_any'],
+        'beneficiaries list' => ['/admin/beneficiaries', 'beneficiaries', 'view_any'],
+        'beneficiaries create' => ['/admin/beneficiaries/create', 'beneficiaries', 'create'],
     ];
 }
 
