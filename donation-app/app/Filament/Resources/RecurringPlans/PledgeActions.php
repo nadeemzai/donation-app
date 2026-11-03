@@ -6,6 +6,8 @@ namespace App\Filament\Resources\RecurringPlans;
 
 use App\Models\RecurringPlan;
 use App\Models\User;
+use App\Services\DonorPledgeService;
+use App\Services\PledgeReminderService;
 use App\Services\RecurringPlanService;
 use DomainException;
 use Filament\Actions\Action;
@@ -59,6 +61,31 @@ final class PledgeActions
             ->modalSubmitActionLabel('Cancel pledge')
             ->action(function (RecurringPlan $record, array $data): void {
                 self::run(fn (RecurringPlanService $s) => $s->cancel($record, (string) $data['reason'], self::user()), 'Pledge cancelled', $record);
+            });
+    }
+
+    /** Re-send the reminder for the newest unpaid due date (e.g. the donor lost the message). */
+    public static function remind(): Action
+    {
+        return Action::make('remind')
+            ->label('Send reminder')
+            ->icon(Heroicon::OutlinedBellAlert)
+            ->color('gray')
+            ->visible(fn (RecurringPlan $record): bool => self::allowed('remind', $record) && app(DonorPledgeService::class)->payablePeriod($record) !== null)
+            ->requiresConfirmation()
+            ->modalHeading('Send the reminder again?')
+            ->modalDescription(fn (RecurringPlan $record): string => 'Sends the pay link for the unpaid due date on '.app(DonorPledgeService::class)->payablePeriod($record)?->due_on->format('d M Y').' by WhatsApp (if the donor opted in) and email.')
+            ->action(function (RecurringPlan $record): void {
+                $period = app(DonorPledgeService::class)->payablePeriod($record);
+                $sent = $period !== null && app(PledgeReminderService::class)->remind($period, byStaff: true);
+
+                if (! $sent) {
+                    Notification::make()->warning()->title('Nothing sent')->body('The pledge reminder template is switched off, or the due date is already paid.')->send();
+
+                    return;
+                }
+
+                Notification::make()->success()->title('Reminder sent')->body('See Message log for delivery.')->send();
             });
     }
 

@@ -41,6 +41,12 @@ class RecurringPlanPolicy
         return $user->can('donations.update') && $plan->status === PledgeStatus::Paused;
     }
 
+    /** Send the reminder again by hand, or copy the pay link for a phone call. */
+    public function remind(User $user, RecurringPlan $plan): bool
+    {
+        return $user->can('donations.update') && $plan->status === PledgeStatus::Active;
+    }
+
     public function cancel(User $user, RecurringPlan $plan): bool
     {
         return $user->can('donations.update') && ! $plan->status->isFinal();

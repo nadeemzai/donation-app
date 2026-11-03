@@ -17,6 +17,9 @@ use App\Models\Campaign;
 use App\Models\Donor;
 use App\Models\RecurringPlan;
 use App\Models\RecurringPlanPeriod;
+use App\Models\User;
+use App\Services\DonorPledgeService;
+use App\Services\PledgeReminderService;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\EditAction;
@@ -148,6 +151,22 @@ class RecurringPlanResource extends Resource
                     TextEntry::make('cancel_reason')->label('Cancelled because')->placeholder('—')
                         ->visible(fn (RecurringPlan $record): bool => $record->status === PledgeStatus::Cancelled),
                     TextEntry::make('notes')->placeholder('—')->columnSpanFull(),
+                    TextEntry::make('pay_link')
+                        ->label('Pay link for the unpaid due date')
+                        ->helperText('Share it by phone or WhatsApp if the donor lost the reminder. Personal to this donor — do not post it publicly.')
+                        ->state(function (RecurringPlan $record): ?string {
+                            $period = app(DonorPledgeService::class)->payablePeriod($record);
+
+                            return $period !== null ? PledgeReminderService::payUrl($period) : null;
+                        })
+                        ->copyable()
+                        ->limit(60)
+                        ->visible(function (RecurringPlan $record): bool {
+                            $user = auth()->user();
+
+                            return $user instanceof User && $user->can('remind', $record) && app(DonorPledgeService::class)->payablePeriod($record) !== null;
+                        })
+                        ->columnSpanFull(),
                 ]),
             Section::make('Payments by due date')
                 ->description('One line per due date. A reminder with a pay link goes out on the day, and once more three days later if unpaid.')
