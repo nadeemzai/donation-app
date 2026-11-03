@@ -39,6 +39,12 @@ class BeneficiaryPolicy
         return $user->can('beneficiaries.update') && ! Beneficiary::seesOnlyOwnCases($user);
     }
 
+    /** The Zakat-eligibility decision: a deciding role (beneficiaries.approve), as for applications. */
+    public function decideZakat(User $user, Beneficiary $beneficiary): bool
+    {
+        return $user->can('beneficiaries.approve') && ! $beneficiary->trashed();
+    }
+
     public function delete(User $user, Beneficiary $beneficiary): bool
     {
         return $user->can('beneficiaries.delete');

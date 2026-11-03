@@ -177,6 +177,13 @@ class ApplicationResource extends Resource
                                     false => 'Not eligible',
                                     null => 'Not assessed',
                                 }),
+                            TextEntry::make('household_size_seen')->label('People seen')->placeholder('—'),
+                            TextEntry::make('monthly_income_found')->label('Income found')
+                                ->state(fn (VerificationVisit $record): ?string => $record->monthly_income_found !== null ? Money::rupees((string) $record->monthly_income_found) : null)
+                                ->placeholder('—'),
+                            TextEntry::make('photos')->label('Photos')
+                                ->state(fn (VerificationVisit $record): int => $record->getMedia(VerificationVisit::PHOTOS)->count()),
+                            TextEntry::make('zakat_reason')->label('Zakat reason')->placeholder('—'),
                             TextEntry::make('findings')->columnSpanFull(),
                         ]),
                 ]),

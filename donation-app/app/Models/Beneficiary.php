@@ -32,8 +32,8 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  *
  * - code (BN-…) comes from the number sequence (BR-04).
  * - CNIC is encrypted; cnic_hash keeps it unique and searchable without decrypting.
- * - status and the Zakat-eligibility decision change only through BeneficiaryService
- *   (after a verification visit) — they are not mass-assignable.
+ * - status and the Zakat-eligibility decision change only through ApplicationWorkflowService
+ *   and VerificationService — they are not mass-assignable.
  * - Archived, never deleted (history and audit stay).
  * - Documents (CNIC copy, bills, prescriptions) are private files.
  *
@@ -56,6 +56,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property bool $is_zakat_eligible
  * @property Carbon|null $zakat_decided_at
  * @property int|null $zakat_decided_by
+ * @property string|null $zakat_note
  * @property BeneficiaryStatus $status
  * @property int|null $registered_by
  * @property int|null $assigned_officer_id
@@ -65,6 +66,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property Carbon|null $deleted_at
  * @property-read User|null $assignedOfficer
  * @property-read User|null $registrar
+ * @property-read User|null $zakatDecider
  */
 #[Fillable([
     'name', 'guardian_name', 'gender', 'date_of_birth', 'cnic', 'phone', 'address', 'city', 'area',
@@ -216,6 +218,14 @@ class Beneficiary extends Model implements HasMedia
     public function assignedOfficer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_officer_id');
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function zakatDecider(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'zakat_decided_by');
     }
 
     /**

@@ -6,6 +6,7 @@ namespace App\Filament\Resources\Beneficiaries\Pages;
 
 use App\Filament\Resources\Applications\ApplicationResource;
 use App\Filament\Resources\Beneficiaries\BeneficiaryResource;
+use App\Filament\Resources\Beneficiaries\ZakatDecisionAction;
 use App\Models\Application;
 use App\Models\Beneficiary;
 use Filament\Actions\Action;
@@ -42,6 +43,7 @@ class ViewBeneficiary extends ViewRecord
     {
         return [
             $this->newApplicationAction(),
+            ZakatDecisionAction::make(fn (): Beneficiary => $this->beneficiary()),
             $this->downloadDocumentAction(),
             EditAction::make(),
         ];
