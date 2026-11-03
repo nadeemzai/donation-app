@@ -46,6 +46,8 @@ class ManageNumberingSettings extends BaseSettingsPage
                     $prefix('disbursement_prefix', 'Disbursement'),
                     $prefix('donor_prefix', 'Donor code'),
                     $prefix('tax_certificate_prefix', 'Tax certificate'),
+                    $prefix('beneficiary_prefix', 'Beneficiary code'),
+                    $prefix('application_prefix', 'Application'),
                     TextInput::make('pad_length')
                         ->label('Number length')
                         ->helperText('Digits after the year, e.g. 6 → 000001')

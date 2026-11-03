@@ -21,6 +21,10 @@ class NumberingSettings extends Settings
 
     public string $tax_certificate_prefix;
 
+    public string $beneficiary_prefix;
+
+    public string $application_prefix;
+
     public int $pad_length;
 
     public static function group(): string
