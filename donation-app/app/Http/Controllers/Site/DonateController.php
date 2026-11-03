@@ -14,12 +14,14 @@ use App\Http\Requests\Site\DonateRequest;
 use App\Models\Campaign;
 use App\Models\Donation;
 use App\Models\Fund;
+use App\Models\RecurringPlanPeriod;
 use App\Payments\Exceptions\GatewayNotAvailable;
 use App\Payments\GatewayRegistry;
 use App\Services\DonationService;
 use App\Services\PaymentService;
 use App\Services\Site\WebDonorService;
 use App\Settings\GatewaySettings;
+use App\Support\PledgeToken;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,8 +56,15 @@ class DonateController extends Controller
     public function create(Request $request): View
     {
         $campaign = null;
-        $notice = null;
         $slug = $request->string('campaign')->toString();
+        [$pledge, $pledgeNotice] = $this->pledgeFromLink($request);
+        $notice = $pledgeNotice;
+
+        if ($pledge !== null) {
+            // The reminder's pay link: the pledge's cause and amount, ready to pay.
+            $planCampaign = $pledge->plan->campaign;
+            $slug = $planCampaign !== null && ! $planCampaign->hasEnded() ? (string) $planCampaign->slug : '';
+        }
 
         if ($slug !== '') {
             $campaign = Campaign::query()->live()->where('slug', $slug)->with(['fund.media', 'media'])->first();
@@ -70,6 +79,12 @@ class DonateController extends Controller
         $code = strtoupper($request->string('fund')->toString());
         $selectedFund = $campaign !== null ? $campaign->fund_id : $funds->firstWhere('code', $code)?->id;
 
+        if ($pledge !== null && $campaign === null) {
+            $selectedFund = $pledge->plan->fund_id;
+        }
+
+        $prefill = preg_match('/^\d{1,9}$/', $request->string('amount')->toString()) === 1 ? $request->string('amount')->toString() : '';
+
         return view('site.donate.create', [
             'campaign' => $campaign,
             'funds' => $funds,
@@ -78,8 +93,10 @@ class DonateController extends Controller
             'bank' => app(GatewaySettings::class),
             'presets' => config('donation.donate.presets'),
             'minAmount' => (int) config('donation.donate.min'),
-            // ?amount=12500 from the Zakat calculator. Whole rupees only.
-            'prefillAmount' => old('amount', preg_match('/^\d{1,9}$/', $request->string('amount')->toString()) === 1 ? $request->string('amount')->toString() : ''),
+            // ?amount=12500 from the Zakat calculator (whole rupees), or the pledge amount.
+            'prefillAmount' => old('amount', $pledge !== null ? (string) $pledge->amount : $prefill),
+            'pledge' => $pledge,
+            'pledgeToken' => $pledge !== null ? PledgeToken::for($pledge) : old('pledge_token'),
             'idempotencyKey' => old('idempotency_key') ?: (string) Str::uuid(),
             'notice' => $notice,
         ]);
@@ -90,8 +107,11 @@ class DonateController extends Controller
         $method = $request->paymentMethod();
         $campaignId = $request->filled('campaign_id') ? (int) $request->validated('campaign_id') : null;
 
+        $pledge = $request->pledgePeriod();
+
         try {
-            ['donor' => $donor, 'notes' => $notes] = $this->donors->resolve([
+            // From a pledge reminder: the pledge's donor gives; no contact details are asked.
+            ['donor' => $donor, 'notes' => $notes] = $pledge !== null ? ['donor' => $pledge->plan->donor, 'notes' => []] : $this->donors->resolve([
                 'name' => (string) $request->validated('name'),
                 'phone' => $request->optionalString('phone'),
                 'email' => $request->optionalString('email'),
@@ -102,6 +122,7 @@ class DonateController extends Controller
             $donation = $this->donations->create([
                 'donor_id' => $donor->id,
                 'campaign_id' => $campaignId,
+                'recurring_plan_period_id' => $pledge?->id,
                 'fund_id' => $campaignId === null ? (int) $request->validated('fund_id') : null,
                 'amount' => $request->amount(),
                 'channel' => DonationChannel::Web,
@@ -129,6 +150,30 @@ class DonateController extends Controller
         $donation = Donation::query()->where('donation_no', $number)->with(['fund.media', 'campaign'])->firstOrFail();
 
         return view('site.donate.thanks', ['donation' => $donation, 'bank' => app(GatewaySettings::class)]);
+    }
+
+    /**
+     * A pledge reminder's signed pay link (?pledge=…): the period, or a notice why not.
+     *
+     * @return array{0: RecurringPlanPeriod|null, 1: mixed}
+     */
+    private function pledgeFromLink(Request $request): array
+    {
+        if (! $request->has('pledge')) {
+            return [null, null];
+        }
+
+        if (! $request->hasValidSignature()) {
+            return [null, __('This pay link has expired. You can still give below — thank you.')];
+        }
+
+        $period = RecurringPlanPeriod::query()->with(['plan.donor', 'plan.fund', 'plan.campaign'])->find($request->integer('pledge'));
+
+        if ($period !== null && ! $period->isPayable()) {
+            return [null, __('Thank you — this pledge payment has already been received.')];
+        }
+
+        return [$period, null];
     }
 
     private function bankTransfer(DonateRequest $request, Donation $donation): RedirectResponse

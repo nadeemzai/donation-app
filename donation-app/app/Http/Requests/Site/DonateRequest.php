@@ -7,10 +7,12 @@ namespace App\Http\Requests\Site;
 use App\Enums\PaymentMethod;
 use App\Models\Campaign;
 use App\Models\Fund;
+use App\Models\RecurringPlanPeriod;
 use App\Payments\GatewayRegistry;
 use App\Support\Cnic;
 use App\Support\Money;
 use App\Support\Phone;
+use App\Support\PledgeToken;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,6 +21,10 @@ use Illuminate\Validation\Validator;
 /** The public donate form (Week 6 Day 2). Anyone may submit it; it is rate-limited by the route. */
 class DonateRequest extends FormRequest
 {
+    private ?RecurringPlanPeriod $pledge = null;
+
+    private bool $pledgeResolved = false;
+
     public function authorize(): bool
     {
         return true;
@@ -45,19 +51,22 @@ class DonateRequest extends FormRequest
         $max = (int) config('donation.donate.max');
         $methods = array_map(fn (PaymentMethod $m): string => $m->value, app(GatewayRegistry::class)->donorMethods());
         $bank = PaymentMethod::BankTransfer->value;
+        $pledge = $this->pledgePeriod() !== null;
 
         return [
             'campaign_id' => ['nullable', 'integer'],
             'fund_id' => ['nullable', 'required_without:campaign_id', 'integer'],
             'amount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/', 'numeric', "min:{$min}", "max:{$max}"],
-            'name' => ['required', 'string', 'min:2', 'max:120'],
+            // A pledge reminder's pay link gives the donor; nobody else is asked for details.
+            'pledge_token' => ['nullable', 'string', 'max:1000'],
+            'name' => [$pledge ? 'nullable' : 'required', 'string', 'min:2', 'max:120'],
             // Overseas donors may give a number abroad (+44…) or only an email.
-            'phone' => ['nullable', 'required_without:email', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
+            'phone' => ['nullable', $pledge ? 'nullable' : 'required_without:email', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
                 if (filled($value) && (! is_string($value) || ! Phone::isValid($value))) {
                     $fail(__('Enter a mobile number: :example.', ['example' => Phone::EXAMPLE]));
                 }
             }],
-            'email' => ['nullable', 'required_without:phone', 'email:rfc', 'max:255'],
+            'email' => ['nullable', $pledge ? 'nullable' : 'required_without:phone', 'email:rfc', 'max:255'],
             'cnic' => ['nullable', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
                 if (! is_string($value) || ! Cnic::isValid($value)) {
                     $fail(__('Enter the 13-digit CNIC, e.g. 35202-1234567-1, or leave it empty.'));
@@ -104,7 +113,10 @@ class DonateRequest extends FormRequest
             function (Validator $validator): void {
                 $method = PaymentMethod::tryFrom((string) $this->input('payment_method'));
 
-                if ($method !== null && $method->isGateway() && ! $validator->errors()->has('phone') && ! Phone::isPakistaniMobile((string) $this->input('phone'))) {
+                $pledge = $this->pledgePeriod();
+                $phone = $pledge !== null ? (string) $pledge->plan->donor->phone : (string) $this->input('phone');
+
+                if ($method !== null && $method->isGateway() && ! $validator->errors()->has('phone') && ! Phone::isPakistaniMobile($phone)) {
                     $validator->errors()->add('payment_method', __(':method needs a Pakistani mobile number. From abroad, please pay by bank transfer.', ['method' => $method->label()]));
                 }
             },
@@ -146,6 +158,17 @@ class DonateRequest extends FormRequest
         $value = $this->validated($key);
 
         return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /** The pledge period this donation pays, from the reminder's pay link (Week 8). */
+    public function pledgePeriod(): ?RecurringPlanPeriod
+    {
+        if (! $this->pledgeResolved) {
+            $this->pledge = PledgeToken::period(is_string($this->input('pledge_token')) ? $this->input('pledge_token') : null);
+            $this->pledgeResolved = true;
+        }
+
+        return $this->pledge;
     }
 
     public function paymentMethod(): PaymentMethod

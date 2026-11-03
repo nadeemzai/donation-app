@@ -41,6 +41,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $donor_id
  * @property int $fund_id
  * @property int|null $campaign_id
+ * @property int|null $recurring_plan_period_id
  * @property string $amount
  * @property string $refunded_amount
  * @property string $currency
@@ -66,7 +67,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property-read Campaign|null $campaign
  */
 #[Fillable([
-    'donor_id', 'fund_id', 'campaign_id', 'amount', 'channel', 'payment_method', 'reference',
+    'donor_id', 'fund_id', 'campaign_id', 'recurring_plan_period_id', 'amount', 'channel', 'payment_method', 'reference',
     'is_anonymous', 'dedication', 'donor_note', 'staff_note', 'received_at', 'recorded_by', 'idempotency_key',
 ])]
 class Donation extends Model implements HasMedia

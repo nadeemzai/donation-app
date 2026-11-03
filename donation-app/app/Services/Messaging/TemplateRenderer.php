@@ -7,6 +7,7 @@ namespace App\Services\Messaging;
 use App\Models\Donation;
 use App\Models\MessageTemplate;
 use App\Models\Receipt;
+use App\Models\RecurringPlanPeriod;
 use App\Models\TaxCertificate;
 use App\Settings\GeneralSettings;
 use App\Support\Money;
@@ -92,6 +93,29 @@ class TemplateRenderer
             'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
             'fiscal_year' => '2025-26',
             'certificate_no' => 'TC-'.now()->year.'-000017',
+            'due_date' => now()->format('d M Y'),
+            'pay_link' => url('/donate?pledge=…'),
+        ];
+    }
+
+    /**
+     * Placeholder values for a pledge reminder.
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForPeriod(RecurringPlanPeriod $period, string $payLink): array
+    {
+        $plan = $period->plan;
+
+        return [
+            'donor_name' => $plan->donor->name,
+            'amount' => Money::rupees((string) $period->amount),
+            'fund' => $plan->fund->name,
+            'campaign' => $plan->campaign?->title,
+            'date' => $period->due_on->format('d M Y'),
+            'due_date' => $period->due_on->format('d M Y'),
+            'pay_link' => $payLink,
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
         ];
     }
 

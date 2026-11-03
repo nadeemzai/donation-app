@@ -7,6 +7,7 @@ namespace App\Filament\Resources\RecurringPlans;
 use App\Enums\CampaignStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PledgeFrequency;
+use App\Enums\PledgePeriodStatus;
 use App\Enums\PledgeStatus;
 use App\Filament\Resources\RecurringPlans\Pages\CreateRecurringPlan;
 use App\Filament\Resources\RecurringPlans\Pages\EditRecurringPlan;
@@ -15,6 +16,7 @@ use App\Filament\Resources\RecurringPlans\Pages\ViewRecurringPlan;
 use App\Models\Campaign;
 use App\Models\Donor;
 use App\Models\RecurringPlan;
+use App\Models\RecurringPlanPeriod;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\EditAction;
@@ -23,6 +25,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
@@ -146,13 +149,30 @@ class RecurringPlanResource extends Resource
                         ->visible(fn (RecurringPlan $record): bool => $record->status === PledgeStatus::Cancelled),
                     TextEntry::make('notes')->placeholder('—')->columnSpanFull(),
                 ]),
+            Section::make('Payments by due date')
+                ->description('One line per due date. A reminder with a pay link goes out on the day, and once more three days later if unpaid.')
+                ->columnSpanFull()
+                ->schema([
+                    RepeatableEntry::make('periods')
+                        ->hiddenLabel()
+                        ->placeholder('No due dates yet — the first reminder goes out on the first due date.')
+                        ->columns(5)
+                        ->schema([
+                            TextEntry::make('due_on')->label('Due')->date('d M Y'),
+                            TextEntry::make('amount')->state(fn (RecurringPlanPeriod $record): string => Money::rupees((string) $record->amount)),
+                            TextEntry::make('status')->badge(),
+                            TextEntry::make('reminder_count')->label('Reminders'),
+                            TextEntry::make('donation.donation_no')->label('Donation')->placeholder('—')
+                                ->url(fn (RecurringPlanPeriod $record): ?string => $record->donation_id !== null ? route('filament.admin.resources.donations.view', $record->donation_id) : null),
+                        ]),
+                ]),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['donor', 'fund', 'campaign']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['donor', 'fund', 'campaign'])->withCount('periods'))
             ->defaultSort('next_due_on')
             ->columns([
                 TextColumn::make('donor.name')->label('Donor')->searchable()
@@ -163,13 +183,19 @@ class RecurringPlanResource extends Resource
                 TextColumn::make('next_due_on')->label('Next due')->date('d M Y')->sortable()->placeholder('—')
                     ->color(fn (RecurringPlan $record): ?string => $record->isOverdue() ? 'danger' : null)
                     ->description(fn (RecurringPlan $record): ?string => $record->isOverdue() ? 'Overdue' : null),
+                TextColumn::make('paid_periods_count')->label('Paid')
+                    ->counts(['periods as paid_periods_count' => fn (Builder $q) => $q->where('status', PledgePeriodStatus::Paid->value)])
+                    ->formatStateUsing(fn (RecurringPlan $record): string => ((int) $record->paid_periods_count).' of '.((int) $record->periods_count))
+                    ->alignCenter(),
                 TextColumn::make('status')->badge(),
             ])
             ->filters([
                 SelectFilter::make('status')->options(PledgeStatus::class)->default(PledgeStatus::Active->value),
                 SelectFilter::make('frequency')->options(PledgeFrequency::class),
                 Filter::make('overdue')->label('Overdue only')
-                    ->query(fn (Builder $query) => $query->where('status', PledgeStatus::Active->value)->whereDate('next_due_on', '<', today())),
+                    ->query(fn (Builder $query) => $query->where('status', PledgeStatus::Active->value)->where(fn (Builder $q) => $q
+                        ->whereDate('next_due_on', '<', today())
+                        ->orWhereHas('periods', fn (Builder $p) => $p->where('status', PledgePeriodStatus::Due->value)->whereDate('due_on', '<', today())))),
             ])
             ->recordActions([
                 ViewAction::make(),

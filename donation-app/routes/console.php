@@ -43,3 +43,10 @@ Schedule::command('sanctum:prune-expired --hours=24')
     ->dailyAt('02:15')
     ->timezone('Asia/Karachi')
     ->onOneServer();
+
+// Week 8: pledge reminders with a pay link, at a reasonable hour in Pakistan.
+Schedule::command('pledges:remind')
+    ->dailyAt('09:10')
+    ->timezone('Asia/Karachi')
+    ->withoutOverlapping()
+    ->onOneServer();
