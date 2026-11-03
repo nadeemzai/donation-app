@@ -45,6 +45,8 @@ class MessageTemplate extends Model
 
     public const TAX_CERTIFICATE = 'tax_certificate';
 
+    public const PLEDGE_REMINDER = 'pledge_reminder';
+
     /** Placeholder => what it becomes (shown to staff on the edit screen). */
     public const PLACEHOLDERS = [
         'donor_name' => 'Donor name',
@@ -58,6 +60,8 @@ class MessageTemplate extends Model
         'org_name' => 'Your organisation name',
         'fiscal_year' => 'Fiscal year, e.g. 2025-26 (tax certificate)',
         'certificate_no' => 'Tax certificate number',
+        'due_date' => 'Pledge due date (pledge reminder)',
+        'pay_link' => 'Link to pay the pledge (pledge reminder)',
     ];
 
     /** Fields that contain placeholders. */

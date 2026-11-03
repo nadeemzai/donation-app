@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\DonationChannel;
 use App\Enums\PaymentMethod;
 use App\Enums\PledgeFrequency;
+use App\Enums\PledgePeriodStatus;
 use App\Enums\PledgeStatus;
 use App\Models\Concerns\Auditable;
 use Database\Factories\RecurringPlanFactory;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -47,6 +49,8 @@ use Illuminate\Support\Carbon;
  * @property-read Donor $donor
  * @property-read Fund $fund
  * @property-read Campaign|null $campaign
+ * @property-read int|null $periods_count
+ * @property-read int|null $paid_periods_count
  */
 #[Fillable(['donor_id', 'fund_id', 'campaign_id', 'amount', 'frequency', 'day_of_month', 'starts_on', 'ends_on', 'payment_method', 'channel', 'notes', 'created_by'])]
 class RecurringPlan extends Model
@@ -65,12 +69,29 @@ class RecurringPlan extends Model
         return $this->campaign !== null ? $this->campaign->title : $this->fund->name;
     }
 
-    /** Active and its due date has passed without being moved on. */
+    /**
+     * Active, and either a due date passed without a reminder going out, or a reminded
+     * period is still unpaid after its due date.
+     */
     public function isOverdue(): bool
     {
-        return $this->status === PledgeStatus::Active
-            && $this->next_due_on !== null
-            && $this->next_due_on->lt(today());
+        if ($this->status !== PledgeStatus::Active) {
+            return false;
+        }
+
+        if ($this->next_due_on !== null && $this->next_due_on->lt(today())) {
+            return true;
+        }
+
+        return $this->periods()->where('status', PledgePeriodStatus::Due->value)->whereDate('due_on', '<', today())->exists();
+    }
+
+    /**
+     * @return HasMany<RecurringPlanPeriod, $this>
+     */
+    public function periods(): HasMany
+    {
+        return $this->hasMany(RecurringPlanPeriod::class)->orderByDesc('due_on');
     }
 
     /**
