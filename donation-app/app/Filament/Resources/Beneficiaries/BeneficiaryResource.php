@@ -186,7 +186,10 @@ class BeneficiaryResource extends Resource
                 ->schema([
                     TextEntry::make('status')->badge(),
                     IconEntry::make('is_zakat_eligible')->label('Zakat eligible')->boolean(),
-                    TextEntry::make('zakat_decided_at')->label('Zakat decided')->dateTime('d M Y')->placeholder('Not yet decided'),
+                    TextEntry::make('zakat_decided_at')->label('Zakat decided')->dateTime('d M Y')->placeholder('Not yet decided')
+                        ->helperText(fn (Beneficiary $record): ?string => $record->zakatDecider !== null ? 'by '.$record->zakatDecider->name : null),
+                    TextEntry::make('zakat_note')->label('Zakat reason')->placeholder('—')->columnSpanFull()
+                        ->visible(fn (Beneficiary $record): bool => $record->zakat_decided_at !== null),
                     TextEntry::make('assignedOfficer.name')->label('Field officer')->placeholder('Not assigned'),
                     TextEntry::make('registrar.name')->label('Registered by')->placeholder('—'),
                     TextEntry::make('created_at')->label('Registered')->dateTime('d M Y'),

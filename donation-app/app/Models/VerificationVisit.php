@@ -9,6 +9,7 @@ use App\Models\Concerns\Auditable;
 use Database\Factories\VerificationVisitFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -92,6 +93,23 @@ class VerificationVisit extends Model implements HasMedia
                 throw new DomainException('A visit cannot move to another application.');
             }
         });
+    }
+
+    /**
+     * Field officers see visits they made, or on applications in their scope.
+     *
+     * @param  Builder<VerificationVisit>  $query
+     * @return Builder<VerificationVisit>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if (! Beneficiary::seesOnlyOwnCases($user)) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $q) => $q
+            ->where('officer_id', $user->id)
+            ->orWhereHas('application', fn (Builder $a) => $a->visibleTo($user)));
     }
 
     public function registerMediaCollections(): void

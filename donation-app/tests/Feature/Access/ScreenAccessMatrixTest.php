@@ -43,6 +43,7 @@ function adminScreens(): array
         'beneficiaries create' => ['/admin/beneficiaries/create', 'beneficiaries', 'create'],
         'applications list' => ['/admin/applications', 'beneficiaries', 'view_any'],
         'applications create' => ['/admin/applications/create', 'beneficiaries', 'create'],
+        'verification visits' => ['/admin/verification-visits', 'beneficiaries', 'view_any'],
     ];
 }
 

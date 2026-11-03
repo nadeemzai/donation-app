@@ -46,6 +46,14 @@ class ApplicationPolicy
             && $this->inScope($user, $application);
     }
 
+    /** FR-BEN-03: the officer records a home visit while the application is open. */
+    public function recordVisit(User $user, Application $application): bool
+    {
+        return $user->can('beneficiaries.update')
+            && $application->status->isOpen()
+            && $this->inScope($user, $application);
+    }
+
     public function approve(User $user, Application $application): bool
     {
         return $user->can('beneficiaries.approve') && $application->status === ApplicationStatus::Verifying;

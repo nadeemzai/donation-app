@@ -10,12 +10,19 @@ use App\Models\Application;
 use App\Models\Beneficiary;
 use App\Models\User;
 use App\Services\ApplicationWorkflowService;
+use App\Services\VerificationService;
+use App\Support\Money;
 use DomainException;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Support\Icons\Heroicon;
 
 /** Workflow buttons, shared by the applications list and the application page. All via ApplicationWorkflowService. */
@@ -26,7 +33,87 @@ final class ApplicationActions
      */
     public static function all(): array
     {
-        return [self::startVerification(), self::approve(), self::reject(), self::reopen()];
+        return [self::recordVisit(), self::startVerification(), self::approve(), self::reject(), self::reopen()];
+    }
+
+    /** FR-BEN-03: the home visit — findings, photos, recommendation and the officer's Zakat view. */
+    public static function recordVisit(): Action
+    {
+        return Action::make('recordVisit')
+            ->label('Record visit')
+            ->icon(Heroicon::OutlinedHome)
+            ->color('primary')
+            ->visible(fn (Application $record): bool => self::allowed('recordVisit', $record))
+            ->modalHeading('Record a verification visit')
+            ->modalDescription(fn (Application $record): string => sprintf(
+                'On file for %s: %d people, income %s a month.',
+                $record->beneficiary->name,
+                $record->beneficiary->household_size,
+                Money::rupees((string) $record->beneficiary->monthly_income),
+            ))
+            ->modalWidth('3xl')
+            ->fillForm(fn (Application $record): array => [
+                'visit_date' => today()->toDateString(),
+                'officer_id' => $record->assigned_officer_id,
+                'update_household' => true,
+            ])
+            ->schema([
+                Grid::make(2)->schema([
+                    DatePicker::make('visit_date')->label('Visited on')->native(false)->maxDate(today())->required(),
+                    Select::make('officer_id')
+                        ->label('Visited by')
+                        ->options(fn (): array => BeneficiaryResource::officerOptions())
+                        ->native(false)
+                        ->required()
+                        ->visible(fn (): bool => (bool) self::user()?->can('assign', Application::class)),
+                ]),
+                Textarea::make('findings')
+                    ->label('What you found')
+                    ->rows(4)
+                    ->maxLength(3000)
+                    ->required()
+                    ->helperText('Housing, earning members, debts, health, children’s schooling, documents seen.'),
+                Grid::make(3)->schema([
+                    TextInput::make('household_size_seen')->label('People living there')->integer()->minValue(1)->maxValue(50),
+                    TextInput::make('monthly_income_found')->label('Income found per month')->prefix('Rs')->numeric()->minValue(0),
+                    Toggle::make('update_household')->label('Update the household record with these')->inline(false),
+                ]),
+                Grid::make(2)->schema([
+                    Select::make('recommendation')->options(VisitRecommendation::class)->native(false)->required(),
+                    Select::make('zakat_eligible')
+                        ->label('Zakat — your view')
+                        ->options(['1' => 'Eligible', '0' => 'Not eligible'])
+                        ->placeholder('Not assessed')
+                        ->native(false)
+                        ->live(),
+                ]),
+                Textarea::make('zakat_reason')
+                    ->label('Why (Zakat)')
+                    ->rows(2)
+                    ->maxLength(1000)
+                    ->required(fn (Get $get): bool => filled($get('zakat_eligible')))
+                    ->visible(fn (Get $get): bool => filled($get('zakat_eligible'))),
+                FileUpload::make('photos')
+                    ->label('Photos')
+                    ->image()
+                    ->multiple()
+                    ->maxFiles(VerificationService::MAX_PHOTOS)
+                    ->maxSize(5120)
+                    ->disk('local')
+                    ->directory('visit-uploads')
+                    ->visibility('private')
+                    ->helperText('House, kitchen, documents seen (up to 10, 5 MB each). Private — never on the website.'),
+            ])
+            ->modalSubmitActionLabel('Save visit')
+            ->action(function (Application $record, array $data): void {
+                $user = self::user();
+
+                if ($user !== null && Beneficiary::seesOnlyOwnCases($user)) {
+                    $data['officer_id'] = $user->id;
+                }
+
+                self::run(fn (): Application => app(VerificationService::class)->recordVisit($record, $data, $user)->application, 'Visit recorded', $record);
+            });
     }
 
     public static function startVerification(): Action
@@ -54,7 +141,7 @@ final class ApplicationActions
                     ? $user->id
                     : (filled($data['officer_id'] ?? null) ? (int) $data['officer_id'] : null);
 
-                self::run(fn (ApplicationWorkflowService $s) => $s->startVerification($record, $officerId, $user), 'Sent for verification', $record);
+                self::run(fn (): Application => app(ApplicationWorkflowService::class)->startVerification($record, $officerId, $user), 'Sent for verification', $record);
             });
     }
 
@@ -89,7 +176,7 @@ final class ApplicationActions
                 $amount = filled($data['approved_amount'] ?? null) ? (string) $data['approved_amount'] : null;
                 $note = is_string($data['note'] ?? null) ? $data['note'] : null;
 
-                self::run(fn (ApplicationWorkflowService $s) => $s->approve($record, $amount, $note, self::user()), 'Application approved', $record);
+                self::run(fn (): Application => app(ApplicationWorkflowService::class)->approve($record, $amount, $note, self::user()), 'Application approved', $record);
             });
     }
 
@@ -105,7 +192,7 @@ final class ApplicationActions
             ->schema([Textarea::make('reason')->label('Reason')->rows(3)->maxLength(1000)->required()])
             ->modalSubmitActionLabel('Reject')
             ->action(function (Application $record, array $data): void {
-                self::run(fn (ApplicationWorkflowService $s) => $s->reject($record, (string) ($data['reason'] ?? ''), self::user()), 'Application rejected', $record);
+                self::run(fn (): Application => app(ApplicationWorkflowService::class)->reject($record, (string) ($data['reason'] ?? ''), self::user()), 'Application rejected', $record);
             });
     }
 
@@ -121,7 +208,7 @@ final class ApplicationActions
             ->schema([Textarea::make('reason')->label('What has changed?')->rows(3)->maxLength(1000)->required()])
             ->modalSubmitActionLabel('Re-open')
             ->action(function (Application $record, array $data): void {
-                self::run(fn (ApplicationWorkflowService $s) => $s->reopen($record, (string) ($data['reason'] ?? ''), self::user()), 'Application re-opened', $record);
+                self::run(fn (): Application => app(ApplicationWorkflowService::class)->reopen($record, (string) ($data['reason'] ?? ''), self::user()), 'Application re-opened', $record);
             });
     }
 
@@ -142,12 +229,12 @@ final class ApplicationActions
     }
 
     /**
-     * @param  callable(ApplicationWorkflowService): Application  $change
+     * @param  callable(): Application  $change
      */
     private static function run(callable $change, string $done, Application $record): void
     {
         try {
-            $change(app(ApplicationWorkflowService::class));
+            $change();
         } catch (DomainException $e) {
             Notification::make()->danger()->title('Not changed')->body($e->getMessage())->send();
 
