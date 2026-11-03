@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Support\PakistanPhone;
+use App\Support\Phone;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -31,12 +31,13 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'min:2', 'max:120'],
-            'phone' => ['required', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
-                if (! is_string($value) || ! PakistanPhone::isValid($value)) {
-                    $fail(__('Enter a Pakistani mobile number, e.g. 0300-1234567.'));
+            // Donors abroad may use a number with its country code (+44…) or only an email.
+            'phone' => ['nullable', 'required_without:email', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
+                if (filled($value) && (! is_string($value) || ! Phone::isValid($value))) {
+                    $fail(__('Enter a mobile number: :example.', ['example' => Phone::EXAMPLE]));
                 }
             }],
-            'email' => ['nullable', 'email:rfc', 'max:255'],
+            'email' => ['nullable', 'required_without:phone', 'email:rfc', 'max:255'],
             'city' => ['nullable', 'string', 'max:100'],
             'language' => ['nullable', 'in:en,ur'],
             'whatsapp_opt_in' => ['boolean'],
@@ -50,8 +51,8 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => ['description' => 'Full name.', 'example' => 'Ayesha Khan'],
-            'phone' => ['description' => 'Pakistani mobile number. The login code goes here.', 'example' => '0300-1234567'],
-            'email' => ['description' => 'Optional. Receipts are also emailed here.', 'example' => 'ayesha@example.com'],
+            'phone' => ['description' => 'Mobile number: Pakistani (0300…) or abroad with country code (+44…). Phone or email is required; the login code goes to the phone when given.', 'example' => '0300-1234567'],
+            'email' => ['description' => 'Required when there is no phone. Receipts are also emailed here.', 'example' => 'ayesha@example.com'],
             'city' => ['description' => 'Optional.', 'example' => 'Lahore'],
             'language' => ['description' => 'en or ur — language for receipts and messages.', 'example' => 'en'],
             'whatsapp_opt_in' => ['description' => 'Receipts and updates on WhatsApp.', 'example' => true],

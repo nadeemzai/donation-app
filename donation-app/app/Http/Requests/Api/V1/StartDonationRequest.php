@@ -12,6 +12,7 @@ use App\Payments\GatewayRegistry;
 use App\Support\Cnic;
 use App\Support\Money;
 use App\Support\PakistanPhone;
+use App\Support\Phone;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -59,12 +60,13 @@ class StartDonationRequest extends FormRequest
             'wallet_number' => ['nullable', 'required_with:cnic_last6', 'regex:/^03\d{9}$/'],
             'cnic_last6' => ['nullable', 'required_with:wallet_number', 'digits:6'],
             'name' => [$guest ? 'required' : 'nullable', 'string', 'min:2', 'max:120'],
-            'phone' => [$guest ? 'required' : 'nullable', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
-                if (filled($value) && (! is_string($value) || ! PakistanPhone::isValid($value))) {
-                    $fail(__('Enter a Pakistani mobile number, e.g. 0300-1234567.'));
+            // Guests: a phone (Pakistan or abroad) or an email.
+            'phone' => ['nullable', $guest ? 'required_without:email' : 'nullable', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
+                if (filled($value) && (! is_string($value) || ! Phone::isValid($value))) {
+                    $fail(__('Enter a mobile number: :example.', ['example' => Phone::EXAMPLE]));
                 }
             }],
-            'email' => ['nullable', 'email:rfc', 'max:255'],
+            'email' => ['nullable', $guest ? 'required_without:phone' : 'nullable', 'email:rfc', 'max:255'],
             'cnic' => ['nullable', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
                 if (filled($value) && (! is_string($value) || ! Cnic::isValid($value))) {
                     $fail(__('Enter the 13-digit CNIC, e.g. 35202-1234567-1, or leave it empty.'));
@@ -103,6 +105,15 @@ class StartDonationRequest extends FormRequest
                 if (filled($this->input('wallet_number')) && $method !== null && ! $method->isGateway()) {
                     $validator->errors()->add('wallet_number', __('A wallet number is only used for JazzCash or Easypaisa.'));
                 }
+
+                // JazzCash / Easypaisa need a Pakistani mobile: the wallet number, or the donor's own.
+                $donor = $this->donor();
+                $phone = $donor !== null ? (string) $donor->phone : (string) $this->input('phone');
+
+                if ($method !== null && $method->isGateway() && blank($this->input('wallet_number'))
+                    && ! $validator->errors()->has('phone') && ! Phone::isPakistaniMobile($phone)) {
+                    $validator->errors()->add('payment_method', __(':method needs a Pakistani mobile number. From abroad, please pay by bank transfer.', ['method' => $method->label()]));
+                }
             },
         ];
     }
@@ -135,8 +146,8 @@ class StartDonationRequest extends FormRequest
             'wallet_number' => ['description' => 'Charge this JazzCash/Easypaisa wallet directly (with cnic_last6). Leave out to get the hosted payment page instead.', 'example' => '03001234567'],
             'cnic_last6' => ['description' => 'Last 6 digits of the wallet owner\'s CNIC. Passed to the gateway, never stored.', 'example' => '345671'],
             'name' => ['description' => 'Required without a donor token.', 'example' => 'Ayesha Khan'],
-            'phone' => ['description' => 'Required without a donor token.', 'example' => '0300-1234567'],
-            'email' => ['description' => 'Optional.', 'example' => 'ayesha@example.com'],
+            'phone' => ['description' => 'Without a donor token: a phone or an email. Pakistani (0300…) or abroad with country code (+44…). JazzCash/Easypaisa need a Pakistani number (or wallet_number).', 'example' => '0300-1234567'],
+            'email' => ['description' => 'Without a donor token: required when there is no phone.', 'example' => 'ayesha@example.com'],
             'cnic' => ['description' => 'Optional, for tax certificates (new donors only).', 'example' => '35202-1234567-1'],
             'whatsapp_opt_in' => ['description' => 'New donors: receipts on WhatsApp.', 'example' => true],
             'is_anonymous' => ['description' => 'Hide the donor\'s name in public lists.', 'example' => false],

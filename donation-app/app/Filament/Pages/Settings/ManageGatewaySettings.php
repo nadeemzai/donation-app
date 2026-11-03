@@ -100,6 +100,13 @@ class ManageGatewaySettings extends BaseSettingsPage
                         ->validationMessages(['regex' => 'Enter a 24-character Pakistani IBAN without spaces, e.g. PK36SCBL0000001123456702.'])
                         ->dehydrateStateUsing(fn (?string $state): ?string => $state === null ? null : strtoupper(str_replace(' ', '', $state))),
                     TextInput::make('bank_raast_id')->label('Raast ID')->maxLength(50),
+                    TextInput::make('bank_swift')
+                        ->label('SWIFT / BIC code')
+                        ->helperText('For donors abroad sending an international transfer, e.g. MEZNPKKA.')
+                        ->maxLength(11)
+                        ->regex('/^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/')
+                        ->validationMessages(['regex' => 'A SWIFT code has 8 or 11 letters and digits, e.g. MEZNPKKA.'])
+                        ->dehydrateStateUsing(fn (?string $state): ?string => blank($state) ? null : strtoupper(trim($state))),
                 ]),
         ]);
     }

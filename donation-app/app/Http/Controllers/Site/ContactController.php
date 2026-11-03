@@ -8,7 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\ContactMessageReceived;
 use App\Models\ContactMessage;
 use App\Settings\GeneralSettings;
-use App\Support\PakistanPhone;
+use App\Support\Phone;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,8 +33,8 @@ class ContactController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'email' => ['nullable', 'required_without:phone', 'email:rfc', 'max:255'],
             'phone' => ['nullable', 'required_without:email', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
-                if (filled($value) && (! is_string($value) || ! PakistanPhone::isValid($value))) {
-                    $fail(__('Enter a Pakistani mobile number, e.g. 0300-1234567.'));
+                if (filled($value) && (! is_string($value) || ! Phone::isValid($value))) {
+                    $fail(__('Enter a mobile number: :example.', ['example' => Phone::EXAMPLE]));
                 }
             }],
             'subject' => ['nullable', 'string', 'max:150'],
@@ -47,7 +47,7 @@ class ContactController extends Controller
         $message = ContactMessage::query()->create([
             'name' => trim((string) $data['name']),
             'email' => filled($data['email'] ?? null) ? mb_strtolower(trim((string) $data['email'])) : null,
-            'phone' => filled($data['phone'] ?? null) ? PakistanPhone::normalize((string) $data['phone']) : null,
+            'phone' => filled($data['phone'] ?? null) ? Phone::normalize((string) $data['phone']) : null,
             'subject' => filled($data['subject'] ?? null) ? trim((string) $data['subject']) : null,
             'message' => trim((string) $data['message']),
             'ip_address' => $request->ip(),

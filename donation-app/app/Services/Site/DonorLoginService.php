@@ -9,7 +9,7 @@ use App\Models\Donor;
 use App\Services\GreenApi\GreenApiClient;
 use App\Settings\GeneralSettings;
 use App\Settings\NotificationSettings;
-use App\Support\PakistanPhone;
+use App\Support\Phone;
 use App\Support\WhatsAppNumber;
 use DomainException;
 use Illuminate\Support\Facades\Cache;
@@ -53,7 +53,7 @@ class DonorLoginService
             return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : null;
         }
 
-        return PakistanPhone::isValid($identifier) ? PakistanPhone::normalize($identifier) : null;
+        return Phone::normalize($identifier);
     }
 
     /** "0300•••4567" / "a•••@gmail.com" — to show where the code went. */

@@ -51,6 +51,14 @@ For the mobile app developer. Every endpoint follows these rules; the endpoint l
 
 Never parse `formatted` or `label`; they may change wording or language.
 
+### Phone numbers
+
+- Pakistani mobiles in any common form (`0300-1234567`, `+92 300 1234567`) are stored as `03001234567`.
+- Numbers abroad must start with `+` (or `00`) and the country code: `+44 7700 900123` → `+447700900123`.
+- Donors abroad may give only an email. JazzCash and Easypaisa need a Pakistani mobile (the donor's,
+  or `wallet_number`); otherwise the app should offer bank transfer (`needs_pakistani_mobile` in
+  `/app/config`). Bank details include `swift` for international transfers.
+
 ## Lists
 
 `?page=2&per_page=20` (max 50). Response `meta.pagination`:

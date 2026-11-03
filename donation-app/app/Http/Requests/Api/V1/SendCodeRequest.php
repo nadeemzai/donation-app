@@ -24,7 +24,7 @@ class SendCodeRequest extends FormRequest
         return [
             'identifier' => ['required', 'string', 'max:255', function (string $attribute, mixed $value, Closure $fail): void {
                 if (! is_string($value) || DonorLoginService::normalise($value) === null) {
-                    $fail(__('Enter your mobile number (e.g. 0300-1234567) or your email address.'));
+                    $fail(__('Enter your mobile number (e.g. 0300-1234567, or +44 7700 900123 from abroad) or your email address.'));
                 }
             }],
         ];

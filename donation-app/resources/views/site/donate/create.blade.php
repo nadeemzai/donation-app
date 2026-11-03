@@ -50,6 +50,9 @@
         method: @js($oldMethod),
         name: @js((string) old('name', '')),
         phone: @js((string) old('phone', '')),
+        email: @js((string) old('email', '')),
+        wallets: @js(array_values(array_map(fn ($m) => $m->value, array_filter($methods, fn ($m) => $m->isGateway())))),
+        hasBank: @js(in_array(\App\Enums\PaymentMethod::BankTransfer, $methods, true)),
         submitting: false,
         problem: '',
         min: {{ $minAmount }},
@@ -61,10 +64,25 @@
             if (s === 1 && ! this.campaign && ! this.fund) return @js(__('Please choose what you would like to give to.'));
             if (s === 2 && this.rupees() < this.min) return @js(__('The smallest online donation is Rs :min.', ['min' => number_format($minAmount)]));
             if (s === 3 && this.name.trim().length < 2) return @js(__('Please enter your name.'));
-            if (s === 3 && this.phone.replace(/\D/g, '').length < 11) return @js(__('Enter a Pakistani mobile number, e.g. 0300-1234567.'));
+            if (s === 3 && this.phone.trim() === '' && this.email.trim() === '') return @js(__('Give a mobile number or an email address so we can send your receipt.'));
+            if (s === 3 && this.phone.trim() !== '' && this.phone.replace(/\D/g, '').length < 10) return @js(__('Enter a mobile number: :example.', ['example' => \App\Support\Phone::EXAMPLE]));
             return '';
         },
-        next() { this.problem = this.check(this.step); if (! this.problem) { this.step++; window.scrollTo({ top: 0, behavior: 'smooth' }); } },
+        // A number abroad (+44…, 0044…) or email only: JazzCash and Easypaisa need a Pakistani mobile.
+        overseas() {
+            const p = this.phone.replace(/[\s-]/g, '');
+            if (p === '') return this.email.trim() !== '';
+            if (p.startsWith('+')) return ! p.startsWith('+92');
+            if (p.startsWith('00')) return ! p.startsWith('0092');
+            return false;
+        },
+        next() {
+            this.problem = this.check(this.step);
+            if (this.problem) return;
+            if (this.step === 3 && this.overseas() && this.wallets.includes(this.method) && this.hasBank) this.method = 'bank_transfer';
+            this.step++;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
         back() { this.problem = ''; this.step--; },
      }">
 
@@ -184,13 +202,14 @@
             <div class="grid gap-5 sm:grid-cols-2">
                 <div>
                     <label for="phone" class="block text-sm font-medium">{{ __('Mobile number') }}</label>
-                    <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" x-model="phone" required
+                    <input id="phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" x-model="phone"
                            class="mt-1 w-full rounded-xl border-ink-900/15 px-4 py-3 focus:border-brand-500 focus:ring-brand-100" placeholder="0300-1234567">
+                    <p class="mt-1 text-xs text-ink-500">{{ __('From abroad? Start with + and your country code, e.g. +44 7700 900123 — or just give your email.') }}</p>
                     @error('phone')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label for="email" class="block text-sm font-medium">{{ __('Email (optional)') }}</label>
-                    <input id="email" name="email" type="email" autocomplete="email" maxlength="255" value="{{ old('email') }}"
+                    <label for="email" class="block text-sm font-medium">{{ __('Email') }} <span class="font-normal text-ink-500">{{ __('(optional with a mobile number)') }}</span></label>
+                    <input id="email" name="email" type="email" autocomplete="email" maxlength="255" x-model="email"
                            class="mt-1 w-full rounded-xl border-ink-900/15 px-4 py-3 focus:border-brand-500 focus:ring-brand-100">
                     @error('email')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
                 </div>
@@ -217,8 +236,11 @@
             </div>
 
             <div class="mt-4 space-y-3">
+                <p x-show="overseas()" x-cloak class="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                    {{ __('Donating from abroad? Please pay by bank transfer — an international transfer or a remittance app (Western Union, Remitly, Wise…) into our account works. JazzCash and Easypaisa need a Pakistani mobile number.') }}
+                </p>
                 @foreach ($methods as $m)
-                    <label class="flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition"
+                    <label @if ($m->isGateway()) x-show="! overseas()" @endif class="flex cursor-pointer items-start gap-3 rounded-2xl border-2 p-4 transition"
                            :class="method === '{{ $m->value }}' ? 'border-brand-500 bg-brand-50/50' : 'border-ink-900/10 hover:border-brand-200'">
                         <input type="radio" name="payment_method" value="{{ $m->value }}" x-model="method" class="mt-1 text-brand-600 focus:ring-brand-200">
                         <span>
@@ -238,6 +260,7 @@
                         @if ($bank->bank_account_title)<dt class="text-ink-500">{{ __('Account title') }}</dt><dd class="font-medium">{{ $bank->bank_account_title }}</dd>@endif
                         @if ($bank->bank_iban)<dt class="text-ink-500">IBAN</dt><dd class="font-mono font-medium">{{ $bank->bank_iban }}</dd>@endif
                         @if ($bank->bank_raast_id)<dt class="text-ink-500">Raast ID</dt><dd class="font-mono font-medium">{{ $bank->bank_raast_id }}</dd>@endif
+                        @if ($bank->bank_swift)<dt class="text-ink-500">SWIFT / BIC</dt><dd class="font-mono font-medium">{{ $bank->bank_swift }} <span class="font-sans text-xs font-normal text-ink-500">{{ __('(for transfers from abroad)') }}</span></dd>@endif
                     </dl>
                     <p class="text-sm font-semibold">{{ __('2. Tell us about the transfer') }}</p>
                     <div>

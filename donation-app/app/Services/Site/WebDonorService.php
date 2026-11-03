@@ -7,7 +7,7 @@ namespace App\Services\Site;
 use App\Enums\DonorType;
 use App\Models\Donor;
 use App\Support\Cnic;
-use App\Support\PakistanPhone;
+use App\Support\Phone;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
 
@@ -26,15 +26,22 @@ use Illuminate\Database\UniqueConstraintViolationException;
 class WebDonorService
 {
     /**
-     * @param  array{name: string, phone: string, email?: string|null, cnic?: string|null, whatsapp_opt_in?: bool}  $details
+     * A phone number (Pakistan or abroad) or an email is needed; overseas donors may give
+     * only an email.
+     *
+     * @param  array{name: string, phone?: string|null, email?: string|null, cnic?: string|null, whatsapp_opt_in?: bool}  $details
      * @return array{donor: Donor, notes: list<string>}
      */
     public function resolve(array $details, string $locale = 'en'): array
     {
-        $phone = (string) PakistanPhone::normalize($details['phone']);
+        $phone = Phone::normalize($details['phone'] ?? null);
         $email = blank($details['email'] ?? null) ? null : strtolower(trim((string) $details['email']));
         $cnic = blank($details['cnic'] ?? null) ? null : Cnic::normalize((string) $details['cnic']);
         $name = trim((string) preg_replace('/\s+/u', ' ', $details['name']));
+
+        if ($phone === null && $email === null) {
+            throw new DomainException('Please give a mobile number or an email address so we can send your receipt.');
+        }
 
         $existing = $this->find($phone, $email);
 
@@ -69,9 +76,9 @@ class WebDonorService
         return ['donor' => $donor, 'notes' => $notes];
     }
 
-    private function find(string $phone, ?string $email): ?Donor
+    private function find(?string $phone, ?string $email): ?Donor
     {
-        $donor = Donor::withTrashed()->where('phone', $phone)->first()
+        $donor = ($phone !== null ? Donor::withTrashed()->where('phone', $phone)->first() : null)
             ?? ($email !== null ? Donor::withTrashed()->where('email', $email)->first() : null);
 
         // Follow merges to the surviving record.
@@ -89,7 +96,7 @@ class WebDonorService
     /**
      * @return list<string>
      */
-    private function differences(Donor $donor, string $name, string $phone, ?string $email, ?string $cnic): array
+    private function differences(Donor $donor, string $name, ?string $phone, ?string $email, ?string $cnic): array
     {
         $notes = [];
 
@@ -97,7 +104,7 @@ class WebDonorService
             $notes[] = "Name given on the website: {$name}";
         }
 
-        if ($donor->phone !== $phone) {
+        if ($phone !== null && $donor->phone !== $phone) {
             $notes[] = "Phone given on the website: {$phone}";
         }
 
