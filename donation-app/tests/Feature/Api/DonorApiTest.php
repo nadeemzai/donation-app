@@ -166,7 +166,8 @@ it('rejects a bad donation request', function (Closure $body, string $field) {
     'method switched off' => [fn () => appDonation(['payment_method' => 'easypaisa']), 'payment_method'],
     'wallet with bank transfer' => [fn () => appDonation(['payment_method' => 'bank_transfer', 'wallet_number' => '03001234567', 'cnic_last6' => '123456']), 'wallet_number'],
     'wallet without cnic digits' => [fn () => appDonation(['wallet_number' => '03001234567']), 'cnic_last6'],
-    'guest without phone' => [fn () => appDonation(['phone' => null]), 'phone'],
+    'guest without phone or email' => [fn () => appDonation(['phone' => null, 'email' => null]), 'phone'],
+    'wallet for a number abroad' => [fn () => appDonation(['phone' => '+44 7700 900123']), 'payment_method'],
     'unknown fund' => [fn () => appDonation(['fund_code' => 'NOPE']), 'fund_code'],
     'closed campaign' => [fn () => appDonation(['fund_code' => null, 'campaign_slug' => (string) Campaign::factory()->closed()->create()->slug]), 'campaign_slug'],
 ]);

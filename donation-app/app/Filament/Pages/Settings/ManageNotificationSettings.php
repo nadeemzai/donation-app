@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Services\GreenApi\GreenApiClient;
 use App\Services\Messaging\WhatsAppService;
 use App\Settings\NotificationSettings;
-use App\Support\PakistanPhone;
+use App\Support\Phone;
 use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
@@ -68,8 +68,8 @@ class ManageNotificationSettings extends BaseSettingsPage
                         ->tel()
                         ->required()
                         ->rule(fn () => function (string $attribute, mixed $value, Closure $fail): void {
-                            if (! PakistanPhone::isValid(is_string($value) ? $value : null)) {
-                                $fail('Enter a Pakistani mobile number, e.g. 03001234567.');
+                            if (! Phone::isValid(is_string($value) ? $value : null)) {
+                                $fail('Enter a mobile number: '.Phone::EXAMPLE.'.');
                             }
                         }),
                 ])

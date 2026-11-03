@@ -79,7 +79,9 @@ class AuthController extends Controller
      */
     public function register(RegisterRequest $request, WebDonorService $donors): JsonResponse
     {
-        $phone = (string) DonorLoginService::normalise((string) $request->validated('phone'));
+        // The code goes to the phone when given, otherwise to the email (donors abroad).
+        $phone = DonorLoginService::normalise((string) $request->optionalString('phone'));
+        $identifier = $phone ?? (string) $request->optionalString('email');
         $language = $request->optionalString('language') ?? app()->getLocale();
 
         try {
@@ -96,12 +98,12 @@ class AuthController extends Controller
             }
         } catch (DomainException) {
             // An archived donor: say nothing different, send nothing.
-            return $this->codeSent($phone);
+            return $this->codeSent($identifier);
         }
 
-        $this->login->requestCode($phone);
+        $this->login->requestCode($identifier);
 
-        return $this->codeSent($phone);
+        return $this->codeSent($identifier);
     }
 
     /**

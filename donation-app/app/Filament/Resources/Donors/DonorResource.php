@@ -10,7 +10,7 @@ use App\Filament\Resources\Donors\Pages\EditDonor;
 use App\Filament\Resources\Donors\Pages\ListDonors;
 use App\Models\Donor;
 use App\Support\Cnic;
-use App\Support\PakistanPhone;
+use App\Support\Phone;
 use BackedEnum;
 use Closure;
 use Filament\Actions\DeleteAction;
@@ -72,10 +72,11 @@ class DonorResource extends Resource
                     TextInput::make('phone')
                         ->tel()
                         ->placeholder('03001234567')
+                        ->helperText('Abroad: start with + and the country code, e.g. +44 7700 900123.')
                         ->requiredWithout('email')
                         ->validationMessages(['required_without' => 'Enter a phone number or an email address.'])
                         ->rule(fn (?Donor $record): Closure => self::phoneRule($record))
-                        ->dehydrateStateUsing(fn (?string $state): ?string => PakistanPhone::normalize($state)),
+                        ->dehydrateStateUsing(fn (?string $state): ?string => Phone::normalize($state)),
                     TextInput::make('email')
                         ->email()
                         ->maxLength(255)
@@ -246,14 +247,14 @@ class DonorResource extends Resource
                 return;
             }
 
-            if (! is_string($value) || ! PakistanPhone::isValid($value)) {
-                $fail('Enter a Pakistani mobile number, e.g. 0300-1234567.');
+            if (! is_string($value) || ! Phone::isValid($value)) {
+                $fail('Enter a mobile number: '.Phone::EXAMPLE.'.');
 
                 return;
             }
 
             $taken = Donor::withTrashed()
-                ->where('phone', PakistanPhone::normalize($value))
+                ->where('phone', Phone::normalize($value))
                 ->when($record, fn (Builder $q) => $q->whereKeyNot($record?->getKey()))
                 ->exists();
 

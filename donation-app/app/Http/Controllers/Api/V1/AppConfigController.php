@@ -67,12 +67,15 @@ class AppConfigController extends Controller
                     // Wallets can be charged from inside the app (number + last 6 CNIC digits).
                     'direct_wallet' => $m->isGateway(),
                     'needs_proof' => $m === PaymentMethod::BankTransfer,
+                    // Wallets need a Pakistani mobile; donors abroad use bank transfer.
+                    'needs_pakistani_mobile' => $m->isGateway(),
                 ], $methods),
                 'bank' => in_array(PaymentMethod::BankTransfer, $methods, true) ? [
                     'bank_name' => $bank->bank_name,
                     'account_title' => $bank->bank_account_title,
                     'iban' => $bank->bank_iban,
                     'raast_id' => $bank->bank_raast_id,
+                    'swift' => $bank->bank_swift,
                 ] : null,
             ],
             'zakat' => [

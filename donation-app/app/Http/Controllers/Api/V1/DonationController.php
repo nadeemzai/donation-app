@@ -74,7 +74,7 @@ class DonationController extends Controller
         if ($donor === null) {
             ['donor' => $donor, 'notes' => $notes] = $donors->resolve([
                 'name' => (string) $request->validated('name'),
-                'phone' => (string) $request->validated('phone'),
+                'phone' => $request->optionalString('phone'),
                 'email' => $request->optionalString('email'),
                 'cnic' => $request->optionalString('cnic'),
                 'whatsapp_opt_in' => (bool) $request->validated('whatsapp_opt_in'),
@@ -242,6 +242,7 @@ class DonationController extends Controller
                 'account_title' => $bank->bank_account_title,
                 'iban' => $bank->bank_iban,
                 'raast_id' => $bank->bank_raast_id,
+                'swift' => $bank->bank_swift,
                 'amount' => ApiFormat::money((string) $donation->amount),
                 'reference_hint' => $donation->donation_no,
             ] : null,

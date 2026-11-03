@@ -57,6 +57,9 @@ class GatewaySettings extends Settings
 
     public ?string $bank_raast_id;
 
+    /** SWIFT / BIC code, for donors sending money from abroad. */
+    public ?string $bank_swift;
+
     public static function group(): string
     {
         return 'gateways';

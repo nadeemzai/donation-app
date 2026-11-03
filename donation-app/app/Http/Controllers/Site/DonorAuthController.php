@@ -38,7 +38,7 @@ class DonorAuthController extends Controller
         $identifier = DonorLoginService::normalise((string) $request->input('identifier'));
 
         if ($identifier === null) {
-            return back()->withInput()->withErrors(['identifier' => __('Enter your mobile number (e.g. 0300-1234567) or your email address.')]);
+            return back()->withInput()->withErrors(['identifier' => __('Enter your mobile number (e.g. 0300-1234567, or +44 7700 900123 from abroad) or your email address.')]);
         }
 
         try {

@@ -10,7 +10,7 @@ use App\Models\Fund;
 use App\Payments\GatewayRegistry;
 use App\Support\Cnic;
 use App\Support\Money;
-use App\Support\PakistanPhone;
+use App\Support\Phone;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -51,12 +51,13 @@ class DonateRequest extends FormRequest
             'fund_id' => ['nullable', 'required_without:campaign_id', 'integer'],
             'amount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/', 'numeric', "min:{$min}", "max:{$max}"],
             'name' => ['required', 'string', 'min:2', 'max:120'],
-            'phone' => ['required', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
-                if (! is_string($value) || ! PakistanPhone::isValid($value)) {
-                    $fail(__('Enter a Pakistani mobile number, e.g. 0300-1234567.'));
+            // Overseas donors may give a number abroad (+44…) or only an email.
+            'phone' => ['nullable', 'required_without:email', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
+                if (filled($value) && (! is_string($value) || ! Phone::isValid($value))) {
+                    $fail(__('Enter a mobile number: :example.', ['example' => Phone::EXAMPLE]));
                 }
             }],
-            'email' => ['nullable', 'email:rfc', 'max:255'],
+            'email' => ['nullable', 'required_without:phone', 'email:rfc', 'max:255'],
             'cnic' => ['nullable', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
                 if (! is_string($value) || ! Cnic::isValid($value)) {
                     $fail(__('Enter the 13-digit CNIC, e.g. 35202-1234567-1, or leave it empty.'));
@@ -99,6 +100,14 @@ class DonateRequest extends FormRequest
                     $validator->errors()->add('fund_id', __('Please choose what you would like to give to.'));
                 }
             },
+            // JazzCash and Easypaisa need a Pakistani mobile; donors abroad pay by bank transfer.
+            function (Validator $validator): void {
+                $method = PaymentMethod::tryFrom((string) $this->input('payment_method'));
+
+                if ($method !== null && $method->isGateway() && ! $validator->errors()->has('phone') && ! Phone::isPakistaniMobile((string) $this->input('phone'))) {
+                    $validator->errors()->add('payment_method', __(':method needs a Pakistani mobile number. From abroad, please pay by bank transfer.', ['method' => $method->label()]));
+                }
+            },
         ];
     }
 
@@ -113,6 +122,8 @@ class DonateRequest extends FormRequest
             'amount.regex' => __('Enter the amount in rupees, e.g. 5000.'),
             'amount.min' => __('The smallest online donation is Rs :min.', ['min' => number_format((int) config('donation.donate.min'))]),
             'amount.max' => __('For donations above Rs :max please contact us.', ['max' => number_format((int) config('donation.donate.max'))]),
+            'phone.required_without' => __('Give a mobile number or an email address so we can send your receipt.'),
+            'email.required_without' => __('Give an email address or a mobile number so we can send your receipt.'),
             'payment_method.required' => __('Choose how you would like to pay.'),
             'payment_method.in' => __('That payment method is not available right now. Please choose another.'),
             'reference.required_if' => __('Enter the transaction ID from your bank or app.'),

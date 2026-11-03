@@ -93,7 +93,7 @@ class DonateController extends Controller
         try {
             ['donor' => $donor, 'notes' => $notes] = $this->donors->resolve([
                 'name' => (string) $request->validated('name'),
-                'phone' => (string) $request->validated('phone'),
+                'phone' => $request->optionalString('phone'),
                 'email' => $request->optionalString('email'),
                 'cnic' => $request->optionalString('cnic'),
                 'whatsapp_opt_in' => (bool) $request->validated('whatsapp_opt_in'),
