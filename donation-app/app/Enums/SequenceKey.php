@@ -16,6 +16,8 @@ enum SequenceKey: string
     case Disbursement = 'disbursement';
     case Donor = 'donor';
     case TaxCertificate = 'tax_certificate';
+    case Beneficiary = 'beneficiary';
+    case Application = 'application';
 
     public function prefix(NumberingSettings $settings): string
     {
@@ -25,6 +27,8 @@ enum SequenceKey: string
             self::Disbursement => $settings->disbursement_prefix,
             self::Donor => $settings->donor_prefix,
             self::TaxCertificate => $settings->tax_certificate_prefix,
+            self::Beneficiary => $settings->beneficiary_prefix,
+            self::Application => $settings->application_prefix,
         };
     }
 }
