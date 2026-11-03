@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Auth;
  */
 class CampaignStatsOverview extends StatsOverviewWidget
 {
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 7;
 
     public static function canView(): bool
     {
