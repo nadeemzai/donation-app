@@ -131,6 +131,14 @@ class Donor extends Authenticatable
     }
 
     /**
+     * @return HasMany<RecurringPlan, $this>
+     */
+    public function recurringPlans(): HasMany
+    {
+        return $this->hasMany(RecurringPlan::class);
+    }
+
+    /**
      * @return HasMany<DeviceToken, $this>
      */
     public function deviceTokens(): HasMany
