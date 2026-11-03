@@ -87,6 +87,7 @@ class DonationController extends Controller
             'donor_id' => $donor->id,
             'campaign_id' => $campaign?->id,
             'fund_id' => $campaign !== null ? null : $request->fund()?->id,
+            'recurring_plan_period_id' => $request->pledgePeriod()?->id,
             'amount' => $request->amount(),
             'channel' => DonationChannel::Mobile,
             'payment_method' => $method,

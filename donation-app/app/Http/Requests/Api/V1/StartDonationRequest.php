@@ -8,6 +8,7 @@ use App\Enums\PaymentMethod;
 use App\Models\Campaign;
 use App\Models\Donor;
 use App\Models\Fund;
+use App\Models\RecurringPlanPeriod;
 use App\Payments\GatewayRegistry;
 use App\Support\Cnic;
 use App\Support\Money;
@@ -76,6 +77,8 @@ class StartDonationRequest extends FormRequest
             'is_anonymous' => ['boolean'],
             'dedication' => ['nullable', 'string', 'max:150'],
             'idempotency_key' => ['required', 'uuid'],
+            // Paying a pledge due date (from /me/recurring-plans → pay_now). Token only.
+            'pledge_period_id' => ['nullable', 'integer'],
         ];
     }
 
@@ -101,6 +104,10 @@ class StartDonationRequest extends FormRequest
                 }
 
                 $method = PaymentMethod::tryFrom((string) $this->input('payment_method'));
+
+                if (filled($this->input('pledge_period_id')) && $this->pledgePeriod() === null) {
+                    $validator->errors()->add('pledge_period_id', __('This pledge payment is not open — it may already be paid.'));
+                }
 
                 if (filled($this->input('wallet_number')) && $method !== null && ! $method->isGateway()) {
                     $validator->errors()->add('wallet_number', __('A wallet number is only used for JazzCash or Easypaisa.'));
@@ -153,6 +160,7 @@ class StartDonationRequest extends FormRequest
             'is_anonymous' => ['description' => 'Hide the donor\'s name in public lists.', 'example' => false],
             'dedication' => ['description' => 'On behalf of / in memory of.', 'example' => 'My late father'],
             'idempotency_key' => ['description' => 'A UUID; or send it as the Idempotency-Key header. Repeating it returns the same donation.', 'example' => '3f2b9f7c-8d1e-4a55-9c3e-1d2f3a4b5c6d'],
+            'pledge_period_id' => ['description' => 'With a donor token: pay this pledge due date (pay_now.pledge_period_id from /me/recurring-plans).', 'example' => 31],
         ];
     }
 
@@ -161,6 +169,21 @@ class StartDonationRequest extends FormRequest
         $donor = $this->user('sanctum');
 
         return $donor instanceof Donor ? $donor : null;
+    }
+
+    /** The donor's own unpaid pledge due date this donation pays, if given and valid. */
+    public function pledgePeriod(): ?RecurringPlanPeriod
+    {
+        $donor = $this->donor();
+        $id = (int) $this->input('pledge_period_id');
+
+        if ($donor === null || $id <= 0) {
+            return null;
+        }
+
+        $period = RecurringPlanPeriod::query()->with('plan')->find($id);
+
+        return $period !== null && $period->isPayable() && $period->plan->donor_id === $donor->id ? $period : null;
     }
 
     public function campaign(): ?Campaign

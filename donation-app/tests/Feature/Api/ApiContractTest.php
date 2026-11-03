@@ -46,6 +46,10 @@ const API_V1_ENDPOINTS = [
     'GET api/v1/me/receipts/{receipt}/download',
     'GET api/v1/me/tax-certificates',
     'GET api/v1/me/tax-certificates/{certificate}/download',
+    'GET api/v1/me/recurring-plans',
+    'POST api/v1/me/recurring-plans',
+    'GET api/v1/me/recurring-plans/{plan}',
+    'PATCH api/v1/me/recurring-plans/{plan}',
     'POST api/v1/devices',
     'DELETE api/v1/devices',
 ];

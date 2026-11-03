@@ -46,6 +46,11 @@
         </p>
     @endif
 
+    <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand-50 px-5 py-4">
+        <p class="text-sm text-brand-800">{{ __('Give a set amount every month, and we will remind you with a link to pay.') }}</p>
+        <a href="{{ route('donor.pledges.create') }}" class="btn-primary px-4 py-2 text-sm">{{ __('Set up a pledge') }}</a>
+    </div>
+
     <h2 class="mt-10 font-display text-xl font-semibold">{{ __('Your donations') }}</h2>
     @if ($donations->isEmpty())
         <div class="mt-4 rounded-2xl border border-dashed border-ink-900/15 p-8 text-center">

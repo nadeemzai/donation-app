@@ -115,6 +115,7 @@ The docs are always open on local and staging. On the live site they are hidden 
 | Donate | `POST /donations` | optional |
 | Donate | `GET {status_url}` · `POST {proof_url}` | signed link |
 | Me | `GET /me` · `PUT /me` · `GET /me/donations` · `GET /me/receipts/{id}/download` · `GET /me/tax-certificates` · `GET /me/tax-certificates/{id}/download` | ✔ |
+| Pledges | `GET /me/recurring-plans` · `POST /me/recurring-plans` · `GET /me/recurring-plans/{id}` · `PATCH /me/recurring-plans/{id}` | ✔ |
 | Devices | `POST /devices` · `DELETE /devices` | ✔ |
 
 `tests/Feature/Api/ApiContractTest.php` holds this list and the response shapes. It fails if an
@@ -152,3 +153,16 @@ POST /donations                        Idempotency-Key: <new UUID>
 
 Poll until `is_final` is `true`. Retrying `POST /donations` with the same Idempotency-Key never
 charges twice. If the request times out, retry with the same key.
+
+## Flow: pledges
+
+```
+POST  /me/recurring-plans        { fund_code | campaign_slug, amount, frequency: monthly|quarterly|yearly, starts_on? }
+GET   /me/recurring-plans        → each has pay_now when a due date is unpaid
+POST  /donations                 { …, pledge_period_id: pay_now.pledge_period_id }   ← pays that due date
+PATCH /me/recurring-plans/{id}   { action: pause|resume|cancel, amount?, reason? }
+```
+
+Nothing is charged automatically: on each due date the donor gets a WhatsApp/email reminder with a
+pay link (`pay_now.web_url` is the same link). The due date shows as paid once the donation is confirmed.
+
