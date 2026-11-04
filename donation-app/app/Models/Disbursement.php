@@ -16,6 +16,7 @@ use Database\Factories\DisbursementFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -175,6 +176,31 @@ class Disbursement extends Model implements Approvable
         return strlen($account) <= 6
             ? str_repeat('•', strlen($account))
             : substr($account, 0, 4).str_repeat('•', strlen($account) - 6).substr($account, -2);
+    }
+
+    /**
+     * Field officers see payouts they requested, or for applications in their scope (W9 data
+     * scope). Every other role with disbursement access sees all.
+     *
+     * @param  Builder<Disbursement>  $query
+     * @return Builder<Disbursement>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if (! Beneficiary::seesOnlyOwnCases($user)) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $q) => $q
+            ->where('requested_by', $user->id)
+            ->orWhereHas('application', fn (Builder $a) => $a->visibleTo($user)));
+    }
+
+    public function isVisibleTo(User $user): bool
+    {
+        return ! Beneficiary::seesOnlyOwnCases($user)
+            || $this->requested_by === $user->id
+            || ($this->application !== null && $this->application->isCaseOf($user));
     }
 
     public function isZakatFunded(): bool
