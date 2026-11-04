@@ -14,6 +14,7 @@ use App\Models\Application;
 use App\Models\Approval;
 use App\Models\Disbursement;
 use App\Models\Fund;
+use App\Models\Project;
 use App\Models\User;
 use App\Support\Money;
 use DomainException;
@@ -24,8 +25,8 @@ use InvalidArgumentException;
 /**
  * Disbursement requests (Week 10 Day 2, FR-DSB-01). Decisions go through ApprovalService.
  *
- *   request()    → a payout for an approved application, from an active fund, never more than
- *                  what is still left of the approved amount
+ *   request()    → a payout for an approved application (never more than what is left of the
+ *                  approved amount) or an active project (from its own fund, within its budget)
  *   approve()    → one approval decision (ApprovalService: levels, BR-06 self-approval)
  *   reject()     → ends the request, with a reason
  *   withdraw()   → the requester (or an approver) cancels it before it is paid
@@ -44,46 +45,29 @@ class DisbursementService
     public function __construct(private readonly ApprovalService $approvals) {}
 
     /**
-     * @param  array<string, mixed>  $data  application_id, fund_id, amount, method, payee_name?, payee_account?, purpose
+     * @param  array<string, mixed>  $data  application_id | project_id, fund_id, amount, method,
+     *                                      payee_name?, payee_account?, purpose
      */
     public function request(array $data, ?User $by = null): Disbursement
     {
         return DB::transaction(function () use ($data, $by): Disbursement {
-            $application = Application::query()->lockForUpdate()->find($data['application_id'] ?? null)
-                ?? throw new DomainException('Choose the approved application this payout is for.');
-
-            if ($application->status !== ApplicationStatus::Approved) {
-                throw new DomainException("Application {$application->application_no} is {$application->status->label()} — only approved applications can be paid.");
-            }
-
-            $fund = Fund::query()->find($data['fund_id'] ?? null);
-
-            if ($fund === null || ! $fund->is_active) {
-                throw new DomainException('Choose an active fund to pay from.');
-            }
-
-            $this->assertZakatUse($fund, $application);
-
             $amount = $this->amount($data['amount'] ?? null);
-            $left = $this->remainingFor($application);
 
-            if ($left !== null && bccomp($amount, $left, 2) > 0) {
-                throw new DomainException(sprintf(
-                    'Only %s is left of the %s approved for %s.',
-                    Money::rupees($left),
-                    Money::rupees((string) $application->approved_amount),
-                    $application->application_no,
-                ));
+            if (filled($data['project_id'] ?? null)) {
+                [$applicationId, $projectId, $fund, $payee] = $this->forProject((int) $data['project_id'], $data['fund_id'] ?? null, $amount);
+            } else {
+                [$applicationId, $projectId, $fund, $payee] = $this->forApplication($data['application_id'] ?? null, $data['fund_id'] ?? null, $amount);
             }
 
             $method = $data['method'] ?? null;
 
             $disbursement = new Disbursement([
-                'application_id' => $application->id,
+                'application_id' => $applicationId,
+                'project_id' => $projectId,
                 'fund_id' => $fund->id,
                 'amount' => $amount,
                 'method' => $method instanceof PayoutMethod ? $method : PayoutMethod::tryFrom(is_string($method) ? $method : ''),
-                'payee_name' => filled($data['payee_name'] ?? null) ? (string) $data['payee_name'] : $application->beneficiary->name,
+                'payee_name' => filled($data['payee_name'] ?? null) ? (string) $data['payee_name'] : $payee,
                 'payee_account' => filled($data['payee_account'] ?? null) ? trim((string) $data['payee_account']) : null,
                 'purpose' => (string) ($data['purpose'] ?? ''),
                 'requested_by' => $by?->id,
@@ -91,11 +75,86 @@ class DisbursementService
             $disbursement->save();
 
             activity('audit')->performedOn($disbursement)->causedBy($by)->event('requested')
-                ->withProperties(['amount' => $amount, 'fund_id' => $fund->id, 'required_approvals' => $disbursement->required_approvals])
+                ->withProperties(['amount' => $amount, 'fund_id' => $fund->id, 'project_id' => $projectId, 'required_approvals' => $disbursement->required_approvals])
                 ->log("Disbursement {$disbursement->disbursement_no} requested: ".Money::rupees($amount)." from {$fund->name}");
 
             return $disbursement;
         });
+    }
+
+    /**
+     * @return array{0: int, 1: null, 2: Fund, 3: string}
+     */
+    private function forApplication(mixed $applicationId, mixed $fundId, string $amount): array
+    {
+        $application = Application::query()->lockForUpdate()->find($applicationId)
+            ?? throw new DomainException('Choose the approved application or the project this payout is for.');
+
+        if ($application->status !== ApplicationStatus::Approved) {
+            throw new DomainException("Application {$application->application_no} is {$application->status->label()} — only approved applications can be paid.");
+        }
+
+        $fund = $this->activeFund($fundId);
+        $this->assertZakatUse($fund, $application);
+
+        $left = $this->remainingFor($application);
+
+        if ($left !== null && bccomp($amount, $left, 2) > 0) {
+            throw new DomainException(sprintf(
+                'Only %s is left of the %s approved for %s.',
+                Money::rupees($left),
+                Money::rupees((string) $application->approved_amount),
+                $application->application_no,
+            ));
+        }
+
+        return [$application->id, null, $fund, $application->beneficiary->name];
+    }
+
+    /**
+     * A project is paid from its own fund, while active, within what is left of its budget.
+     *
+     * @return array{0: null, 1: int, 2: Fund, 3: string}
+     */
+    private function forProject(int $projectId, mixed $fundId, string $amount): array
+    {
+        $project = Project::query()->lockForUpdate()->find($projectId)
+            ?? throw new DomainException('Choose the project this payout is for.');
+
+        if (! $project->acceptsPayouts()) {
+            throw new DomainException("{$project->name} is {$project->status->label()} — payouts can be requested only for an active project.");
+        }
+
+        if (filled($fundId) && (int) $fundId !== $project->fund_id) {
+            throw new DomainException("{$project->name} is paid from {$project->fund->name} only.");
+        }
+
+        $fund = $this->activeFund($project->fund_id);
+        $this->assertZakatUse($fund, null, $project->id);
+
+        $left = $project->budgetLeft();
+
+        if (bccomp($amount, $left, 2) > 0) {
+            throw new DomainException(sprintf(
+                'Only %s is left of the %s budget of %s.',
+                Money::rupees($left),
+                Money::rupees((string) $project->budget),
+                $project->name,
+            ));
+        }
+
+        return [null, $project->id, $fund, $project->name];
+    }
+
+    private function activeFund(mixed $fundId): Fund
+    {
+        $fund = Fund::query()->find($fundId);
+
+        if ($fund === null || ! $fund->is_active) {
+            throw new DomainException('Choose an active fund to pay from.');
+        }
+
+        return $fund;
     }
 
     public function approve(Disbursement $disbursement, User $by, ?string $comment = null): Approval
@@ -146,6 +205,10 @@ class DisbursementService
         }
 
         $this->assertZakatUse($fund, $disbursement->application, $disbursement->project_id);
+
+        if ($disbursement->project !== null && ! $disbursement->project->acceptsPayouts()) {
+            throw new DomainException("{$disbursement->project->name} is {$disbursement->project->status->label()} — its payouts cannot be approved.");
+        }
 
         if ($disbursement->method === PayoutMethod::InKind) {
             return;

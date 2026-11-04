@@ -64,6 +64,7 @@ use Illuminate\Support\Carbon;
  * @property-read Fund $fund
  * @property-read Application|null $application
  * @property-read Beneficiary|null $beneficiary
+ * @property-read Project|null $project
  * @property-read User|null $requester
  * @property-read User|null $payer
  */
@@ -293,6 +294,14 @@ class Disbursement extends Model implements Approvable
     public function application(): BelongsTo
     {
         return $this->belongsTo(Application::class);
+    }
+
+    /**
+     * @return BelongsTo<Project, $this>
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class)->withTrashed();
     }
 
     /**

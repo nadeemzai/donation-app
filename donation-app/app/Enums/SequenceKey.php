@@ -18,6 +18,7 @@ enum SequenceKey: string
     case TaxCertificate = 'tax_certificate';
     case Beneficiary = 'beneficiary';
     case Application = 'application';
+    case Project = 'project';
 
     public function prefix(NumberingSettings $settings): string
     {
@@ -29,6 +30,7 @@ enum SequenceKey: string
             self::TaxCertificate => $settings->tax_certificate_prefix,
             self::Beneficiary => $settings->beneficiary_prefix,
             self::Application => $settings->application_prefix,
+            self::Project => $settings->project_prefix,
         };
     }
 }

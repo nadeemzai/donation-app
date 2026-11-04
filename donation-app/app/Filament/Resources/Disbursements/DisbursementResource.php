@@ -8,16 +8,19 @@ use App\Enums\ApplicationStatus;
 use App\Enums\ApprovalDecision;
 use App\Enums\DisbursementStatus;
 use App\Enums\PayoutMethod;
+use App\Enums\ProjectStatus;
 use App\Enums\Role;
 use App\Filament\Resources\Applications\ApplicationResource;
 use App\Filament\Resources\Disbursements\Pages\CreateDisbursement;
 use App\Filament\Resources\Disbursements\Pages\EditDisbursement;
 use App\Filament\Resources\Disbursements\Pages\ListDisbursements;
 use App\Filament\Resources\Disbursements\Pages\ViewDisbursement;
+use App\Filament\Resources\Projects\ProjectResource;
 use App\Models\Application;
 use App\Models\Approval;
 use App\Models\Disbursement;
 use App\Models\Fund;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\ApprovalService;
 use App\Services\DisbursementService;
@@ -29,6 +32,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -74,9 +78,43 @@ class DisbursementResource extends Resource
                 ->columns(2)
                 ->columnSpanFull()
                 ->schema([
+                    ToggleButtons::make('payout_for')
+                        ->label('Payout for')
+                        ->options(['application' => 'A household (approved application)', 'project' => 'A project'])
+                        ->default(fn (): string => request()->integer('project') > 0 ? 'project' : 'application')
+                        ->inline()
+                        ->live()
+                        ->dehydrated(false)
+                        ->visibleOn('create')
+                        ->columnSpanFull(),
+                    Select::make('project_id')
+                        ->label('Project')
+                        ->native(false)
+                        ->searchable()
+                        ->live()
+                        ->default(fn (): ?int => request()->integer('project') ?: null)
+                        ->options(fn (): array => Project::query()->where('status', ProjectStatus::Active->value)->orderBy('name')->get()
+                            ->mapWithKeys(fn (Project $p): array => [$p->id => $p->code.' · '.$p->name.' · left '.Money::rupees($p->budgetLeft())])->all())
+                        ->required(fn (Get $get, string $operation): bool => $operation === 'create' && $get('payout_for') === 'project')
+                        ->visible(fn (Get $get, string $operation, ?Disbursement $record): bool => $operation === 'create' ? $get('payout_for') === 'project' : $record?->project_id !== null)
+                        ->afterStateUpdated(function (mixed $state, Set $set): void {
+                            $project = Project::query()->find($state);
+
+                            if (! $project instanceof Project) {
+                                return;
+                            }
+
+                            $set('payee_name', $project->name);
+                            $set('fund_id', $project->fund_id);
+                            $set('amount', $project->budgetLeft());
+                        })
+                        ->disabledOn('edit')
+                        ->dehydrated(fn (Get $get, string $operation): bool => $operation === 'create' && $get('payout_for') === 'project')
+                        ->columnSpanFull(),
                     Select::make('application_id')
                         ->label('Approved application')
-                        ->required()
+                        ->required(fn (Get $get, string $operation): bool => $operation === 'create' && $get('payout_for') !== 'project')
+                        ->visible(fn (Get $get, string $operation, ?Disbursement $record): bool => $operation === 'create' ? $get('payout_for') !== 'project' : $record?->application_id !== null)
                         ->searchable()
                         ->native(false)
                         ->live()
@@ -90,8 +128,8 @@ class DisbursementResource extends Resource
                             ->limit(20)->get()
                             ->mapWithKeys(fn (Application $a): array => [$a->id => self::applicationLabel($a)])->all())
                         ->getOptionLabelUsing(fn (mixed $value): ?string => ($a = Application::query()->find($value)) instanceof Application ? self::applicationLabel($a) : null)
-                        ->rule(fn (string $operation): Closure => function (string $attribute, mixed $value, Closure $fail) use ($operation): void {
-                            if ($operation === 'create' && ! self::applicationQuery()->whereKey($value)->exists()) {
+                        ->rule(fn (string $operation, Get $get): Closure => function (string $attribute, mixed $value, Closure $fail) use ($operation, $get): void {
+                            if ($operation === 'create' && $get('payout_for') !== 'project' && ! self::applicationQuery()->whereKey($value)->exists()) {
                                 $fail('Choose one of your approved applications.');
                             }
                         })
@@ -107,7 +145,7 @@ class DisbursementResource extends Resource
                             $set('amount', app(DisbursementService::class)->remainingFor($application));
                         })
                         ->disabledOn('edit')
-                        ->dehydrated(fn (string $operation): bool => $operation === 'create')
+                        ->dehydrated(fn (Get $get, string $operation): bool => $operation === 'create' && $get('payout_for') !== 'project')
                         ->columnSpanFull(),
                     Select::make('fund_id')
                         ->label('Pay from fund')
@@ -116,7 +154,11 @@ class DisbursementResource extends Resource
                         ->options(fn (): array => Fund::query()->active()->get()
                             ->mapWithKeys(fn (Fund $f): array => [$f->id => $f->name.($f->is_zakat ? ' (Zakat)' : '').' · '.Money::rupees((string) $f->balance)])
                             ->all())
-                        ->helperText('A Zakat fund can only pay a household found Zakat-eligible.'),
+                        ->disabled(fn (Get $get): bool => $get('payout_for') === 'project')
+                        ->dehydrated()
+                        ->helperText(fn (Get $get): string => $get('payout_for') === 'project'
+                            ? 'A project is paid from its own fund.'
+                            : 'A Zakat fund can only pay a household found Zakat-eligible.'),
                     TextInput::make('amount')
                         ->label('Amount')
                         ->prefix('Rs')
@@ -124,6 +166,12 @@ class DisbursementResource extends Resource
                         ->minValue(1)
                         ->required()
                         ->helperText(function (Get $get): ?string {
+                            if ($get('payout_for') === 'project') {
+                                $project = Project::query()->find($get('project_id'));
+
+                                return $project instanceof Project ? 'Budget left on this project: '.Money::rupees($project->budgetLeft()).'.' : null;
+                            }
+
                             $application = Application::query()->find($get('application_id'));
                             $left = $application instanceof Application ? app(DisbursementService::class)->remainingFor($application) : null;
 
@@ -178,6 +226,12 @@ class DisbursementResource extends Resource
                             ? ApplicationResource::getUrl('view', ['record' => $record->application_id])
                             : null)
                         ->placeholder('—'),
+                    TextEntry::make('project.name')->label('Project')
+                        ->state(fn (Disbursement $record): ?string => $record->project !== null ? $record->project->code.' · '.$record->project->name : null)
+                        ->url(fn (Disbursement $record): ?string => $record->project_id !== null && (bool) self::currentUser()?->can('view', $record->project)
+                            ? ProjectResource::getUrl('view', ['record' => $record->project_id])
+                            : null)
+                        ->visible(fn (Disbursement $record): bool => $record->project_id !== null),
                     TextEntry::make('requester.name')->label('Requested by')->placeholder('—'),
                     TextEntry::make('requested_at')->label('Requested')->dateTime('d M Y H:i'),
                     TextEntry::make('fund_available')->label('Available in fund')
@@ -219,7 +273,7 @@ class DisbursementResource extends Resource
             ->columns([
                 TextColumn::make('disbursement_no')->label('Number')->searchable()->sortable()->weight('bold'),
                 TextColumn::make('payee_name')->label('Paid to')->searchable()
-                    ->description(fn (Disbursement $record): ?string => $record->application?->application_no),
+                    ->description(fn (Disbursement $record): ?string => $record->application->application_no ?? $record->project?->code),
                 TextColumn::make('fund.name')->label('Fund'),
                 TextColumn::make('amount')->state(fn (Disbursement $record): string => Money::rupees((string) $record->amount))
                     ->sortable(query: fn (Builder $query, string $direction): Builder => $query->orderBy('amount', $direction)),
@@ -263,7 +317,7 @@ class DisbursementResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         /** @var Builder<Disbursement> $query */
-        $query = parent::getEloquentQuery()->with(['fund', 'application.beneficiary', 'requester', 'approvals']);
+        $query = parent::getEloquentQuery()->with(['fund', 'application.beneficiary', 'project', 'requester', 'approvals']);
 
         $user = self::currentUser();
 
