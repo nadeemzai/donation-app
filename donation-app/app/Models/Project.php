@@ -14,6 +14,7 @@ use App\Support\Money;
 use Database\Factories\ProjectFactory;
 use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -183,6 +184,24 @@ class Project extends Model
     public function milestones(): HasMany
     {
         return $this->hasMany(Milestone::class)->orderBy('sort_order')->orderBy('due_on')->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<ImpactUpdate, $this>
+     */
+    public function impactUpdates(): HasMany
+    {
+        return $this->hasMany(ImpactUpdate::class)->latest('published_at')->latest('id');
+    }
+
+    /**
+     * Projects shown on the website ("Show on the website" on). Archived ones are excluded by SoftDeletes.
+     *
+     * @param  Builder<Project>  $query
+     */
+    public function scopePublic(Builder $query): void
+    {
+        $query->where('is_public', true);
     }
 
     /**

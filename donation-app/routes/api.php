@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\DonationController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PledgeController;
+use App\Http\Controllers\Api\V1\ProjectController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -35,6 +36,10 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::get('campaigns/{slug}', [CatalogController::class, 'campaign'])->where('slug', '[a-z0-9-]{1,120}')->name('campaigns.show');
     Route::get('campaigns/{slug}/updates', [CatalogController::class, 'campaignUpdates'])->where('slug', '[a-z0-9-]{1,120}')->name('campaigns.updates');
     Route::get('impact-updates', [CatalogController::class, 'impactUpdates'])->name('impact-updates');
+    Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[a-z0-9-]{1,170}')->name('projects.show');
+    Route::get('projects/{slug}/updates', [ProjectController::class, 'updates'])->where('slug', '[a-z0-9-]{1,170}')->name('projects.updates');
+    Route::get('project-updates', [ProjectController::class, 'feed'])->name('project-updates');
     Route::get('pages/{slug}', [ContentController::class, 'page'])->where('slug', '[a-z0-9-]{1,60}')->name('pages.show');
     Route::post('zakat/calculate', [ContentController::class, 'zakat'])->name('zakat.calculate');
 

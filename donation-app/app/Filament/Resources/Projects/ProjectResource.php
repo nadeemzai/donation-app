@@ -10,6 +10,7 @@ use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
 use App\Filament\Resources\Projects\Pages\ViewProject;
 use App\Filament\Resources\Projects\RelationManagers\DisbursementsRelationManager;
+use App\Filament\Resources\Projects\RelationManagers\ImpactUpdatesRelationManager;
 use App\Filament\Resources\Projects\RelationManagers\MilestonesRelationManager;
 use App\Models\Fund;
 use App\Models\Project;
@@ -177,6 +178,7 @@ class ProjectResource extends Resource
     {
         return [
             MilestonesRelationManager::class,
+            ImpactUpdatesRelationManager::class,
             DisbursementsRelationManager::class,
         ];
     }

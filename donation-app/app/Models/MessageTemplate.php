@@ -47,6 +47,8 @@ class MessageTemplate extends Model
 
     public const PLEDGE_REMINDER = 'pledge_reminder';
 
+    public const IMPACT_UPDATE = 'impact_update';
+
     /** Placeholder => what it becomes (shown to staff on the edit screen). */
     public const PLACEHOLDERS = [
         'donor_name' => 'Donor name',
@@ -62,6 +64,9 @@ class MessageTemplate extends Model
         'certificate_no' => 'Tax certificate number',
         'due_date' => 'Pledge due date (pledge reminder)',
         'pay_link' => 'Link to pay the pledge (pledge reminder)',
+        'project' => 'Project name (impact update)',
+        'update_title' => 'Title of the update (impact update)',
+        'link' => 'Link to the update on the website (impact update)',
     ];
 
     /** Fields that contain placeholders. */

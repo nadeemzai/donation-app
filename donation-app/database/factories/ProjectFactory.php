@@ -32,6 +32,11 @@ class ProjectFactory extends Factory
         ];
     }
 
+    public function public(): static
+    {
+        return $this->state(['is_public' => true]);
+    }
+
     public function planned(): static
     {
         return $this->state(['status' => ProjectStatus::Planned]);

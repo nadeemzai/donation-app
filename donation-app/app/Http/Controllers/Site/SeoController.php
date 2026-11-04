@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\Fund;
 use App\Models\Page;
+use App\Models\Project;
 use Illuminate\Http\Response;
 
 /**
@@ -40,6 +41,12 @@ class SeoController extends Controller
                     'priority' => $campaign->status === CampaignStatus::Live ? '0.9' : '0.4',
                 ];
             });
+
+        $urls[] = ['loc' => route('projects.index'), 'lastmod' => null, 'priority' => '0.7'];
+
+        Project::query()->public()->get(['slug', 'updated_at'])->each(function (Project $project) use (&$urls): void {
+            $urls[] = ['loc' => route('projects.show', $project->slug), 'lastmod' => $project->updated_at?->toAtomString(), 'priority' => '0.6'];
+        });
 
         Fund::query()->active()->get(['code', 'updated_at'])->each(function (Fund $fund) use (&$urls): void {
             $urls[] = ['loc' => route('funds.show', strtolower($fund->code)), 'lastmod' => $fund->updated_at?->toAtomString(), 'priority' => '0.7'];

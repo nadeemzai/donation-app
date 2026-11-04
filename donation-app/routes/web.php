@@ -12,6 +12,7 @@ use App\Http\Controllers\Site\DonorPortalController;
 use App\Http\Controllers\Site\FundController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\PageController;
+use App\Http\Controllers\Site\ProjectController;
 use App\Http\Controllers\Site\SeoController;
 use App\Http\Controllers\Site\ZakatController;
 use App\Models\Page;
@@ -25,6 +26,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', HomeController::class)->name('home');
 Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
 Route::get('campaigns/{campaign:slug}', [CampaignController::class, 'show'])->name('campaigns.show');
+Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
+Route::get('projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[a-z0-9-]{1,170}')->name('projects.show');
 Route::get('ways-to-give', [FundController::class, 'index'])->name('funds.index');
 Route::get('ways-to-give/{code}', [FundController::class, 'show'])->where('code', '[A-Za-z0-9_-]{1,30}')->name('funds.show');
 
