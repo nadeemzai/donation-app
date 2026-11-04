@@ -15,7 +15,9 @@
         'amount' => 2, 'dedication' => 2, 'is_anonymous' => 2,
         'name' => 3, 'phone' => 3, 'email' => 3, 'cnic' => 3, 'whatsapp_opt_in' => 3,
     ];
-    $startStep = $pledge ? 4 : ($campaign || $selectedFund ? 2 : 1);
+    // A pledge pay link or a Qurbani booking already knows the cause, amount and donor.
+    $knownDonor = $pledge?->plan->donor ?? $booking?->donor;
+    $startStep = $knownDonor ? 4 : ($campaign || $selectedFund ? 2 : 1);
 
     if ($errors->any()) {
         $startStep = 4;
@@ -50,8 +52,8 @@
         method: @js($oldMethod),
         name: @js((string) old('name', '')),
         phone: @js((string) old('phone', '')),
-        pledge: @js($pledge !== null),
-        pledgeAbroad: @js($pledge !== null && ! \App\Support\Phone::isPakistaniMobile($pledge->plan->donor->phone)),
+        pledge: @js($knownDonor !== null),
+        pledgeAbroad: @js($knownDonor !== null && ! \App\Support\Phone::isPakistaniMobile($knownDonor->phone)),
         email: @js((string) old('email', '')),
         wallets: @js(array_values(array_map(fn ($m) => $m->value, array_filter($methods, fn ($m) => $m->isGateway())))),
         hasBank: @js(in_array(\App\Enums\PaymentMethod::BankTransfer, $methods, true)),
@@ -107,6 +109,14 @@
         <p class="mt-6 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ $notice }}</p>
     @endif
 
+    @if ($booking)
+        <div class="mt-6 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
+            <p class="font-semibold">{{ __('Qurbani booking :no — :shares × :animal, :total', ['no' => $booking->booking_no, 'shares' => $booking->shares, 'animal' => $booking->offering->animal->label(), 'total' => \App\Support\Money::rupees((string) $booking->total_amount)]) }}</p>
+            <p class="mt-1">{{ __('On behalf of: :names', ['names' => implode(', ', $booking->names())]) }}</p>
+            <p class="mt-1">{{ __('Your shares are held while you pay. Choose how to pay below — JazakAllah khair.') }}</p>
+        </div>
+    @endif
+
     @if ($pledge)
         <p class="mt-6 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
             {{ __('Your pledge of Rs :amount to :cause, due on :date. Choose how to pay below — JazakAllah khair.', ['amount' => \App\Support\Money::format((string) $pledge->amount), 'cause' => $pledge->plan->causeName(), 'date' => $pledge->due_on->format('d M Y')]) }}
@@ -128,6 +138,7 @@
         @csrf
         <input type="hidden" name="idempotency_key" value="{{ $idempotencyKey }}">
         @if ($pledgeToken)<input type="hidden" name="pledge_token" value="{{ $pledgeToken }}">@endif
+        @if ($qurbaniToken)<input type="hidden" name="qurbani_token" value="{{ $qurbaniToken }}">@endif
         <input type="hidden" name="campaign_id" :value="campaign">
 
         <p x-show="problem" x-text="problem" x-cloak class="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800" role="alert"></p>
@@ -201,7 +212,12 @@
 
         {{-- 3. Your details --}}
         <fieldset x-show="step === 3" @if ($startStep !== 3) x-cloak @endif class="space-y-5">
-        @if ($pledge)
+        @if ($booking)
+            <div class="rounded-2xl border border-ink-900/10 p-5">
+                <h2 class="font-display text-xl font-semibold">{{ __('Your details') }}</h2>
+                <p class="mt-2 text-ink-700">{{ __('Booking as :name. Your receipt and Qurbani updates go to the contact details you gave.', ['name' => $booking->donor->name]) }}</p>
+            </div>
+        @elseif ($pledge)
             <div class="rounded-2xl border border-ink-900/10 p-5">
                 <h2 class="font-display text-xl font-semibold">{{ __('Your details') }}</h2>
                 <p class="mt-2 text-ink-700">{{ __('Giving as :name, for your pledge due on :date. Your receipt goes to the contact details we already have.', ['name' => $pledge->plan->donor->name, 'date' => $pledge->due_on->format('d M Y')]) }}</p>

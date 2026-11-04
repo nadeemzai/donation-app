@@ -56,3 +56,9 @@ Schedule::command('impact:notify')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+// Week 11: unpaid Qurbani bookings stop showing as waiting once their hold runs out.
+Schedule::command('qurbani:expire')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();

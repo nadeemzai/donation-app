@@ -34,6 +34,8 @@ const API_V1_ENDPOINTS = [
     'GET api/v1/projects/{slug}',
     'GET api/v1/projects/{slug}/updates',
     'GET api/v1/project-updates',
+    'GET api/v1/qurbani',
+    'POST api/v1/qurbani/bookings',
     'GET api/v1/pages/{slug}',
     'POST api/v1/zakat/calculate',
     'POST api/v1/auth/register',

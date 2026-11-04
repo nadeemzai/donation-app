@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\PledgeController;
 use App\Http\Controllers\Api\V1\ProjectController;
+use App\Http\Controllers\Api\V1\QurbaniController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,6 +41,8 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::get('projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[a-z0-9-]{1,170}')->name('projects.show');
     Route::get('projects/{slug}/updates', [ProjectController::class, 'updates'])->where('slug', '[a-z0-9-]{1,170}')->name('projects.updates');
     Route::get('project-updates', [ProjectController::class, 'feed'])->name('project-updates');
+    Route::get('qurbani', [QurbaniController::class, 'show'])->name('qurbani.show');
+    Route::post('qurbani/bookings', [QurbaniController::class, 'store'])->middleware('throttle:api-donate')->name('qurbani.bookings.store');
     Route::get('pages/{slug}', [ContentController::class, 'page'])->where('slug', '[a-z0-9-]{1,60}')->name('pages.show');
     Route::post('zakat/calculate', [ContentController::class, 'zakat'])->name('zakat.calculate');
 

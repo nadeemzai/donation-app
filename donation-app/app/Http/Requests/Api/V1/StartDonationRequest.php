@@ -8,13 +8,17 @@ use App\Enums\PaymentMethod;
 use App\Models\Campaign;
 use App\Models\Donor;
 use App\Models\Fund;
+use App\Models\QurbaniBooking;
 use App\Models\RecurringPlanPeriod;
 use App\Payments\GatewayRegistry;
+use App\Services\QurbaniService;
 use App\Support\Cnic;
 use App\Support\Money;
 use App\Support\PakistanPhone;
 use App\Support\Phone;
+use App\Support\QurbaniToken;
 use Closure;
+use DomainException;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -48,15 +52,17 @@ class StartDonationRequest extends FormRequest
      */
     public function rules(): array
     {
-        $guest = $this->donor() === null;
+        $booking = $this->qurbaniBooking() !== null;
+        $guest = $this->donor() === null && ! $booking;
         $methods = array_map(fn (PaymentMethod $m): string => $m->value, app(GatewayRegistry::class)->donorMethods());
         $min = (int) config('donation.donate.min');
         $max = (int) config('donation.donate.max');
 
         return [
-            'fund_code' => ['nullable', 'required_without:campaign_slug', 'string', 'max:30'],
+            'fund_code' => ['nullable', $booking ? 'nullable' : 'required_without:campaign_slug', 'string', 'max:30'],
             'campaign_slug' => ['nullable', 'string', 'max:120'],
-            'amount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/', 'numeric', "min:{$min}", "max:{$max}"],
+            // A Qurbani booking's amount is its total, set by the server.
+            'amount' => $booking ? ['nullable'] : ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/', 'numeric', "min:{$min}", "max:{$max}"],
             'payment_method' => ['required', Rule::in($methods)],
             'wallet_number' => ['nullable', 'required_with:cnic_last6', 'regex:/^03\d{9}$/'],
             'cnic_last6' => ['nullable', 'required_with:wallet_number', 'digits:6'],
@@ -79,6 +85,8 @@ class StartDonationRequest extends FormRequest
             'idempotency_key' => ['required', 'uuid'],
             // Paying a pledge due date (from /me/recurring-plans → pay_now). Token only.
             'pledge_period_id' => ['nullable', 'integer'],
+            // Paying a Qurbani booking (from POST /qurbani/bookings). Week 11.
+            'qurbani_booking_token' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
@@ -93,7 +101,19 @@ class StartDonationRequest extends FormRequest
                     return;
                 }
 
-                if (filled($this->input('campaign_slug'))) {
+                if (filled($this->input('qurbani_booking_token'))) {
+                    $booking = $this->qurbaniBooking();
+
+                    if ($booking === null) {
+                        $validator->errors()->add('qurbani_booking_token', __('That Qurbani booking is not valid. Please book again.'));
+                    } else {
+                        try {
+                            app(QurbaniService::class)->assertPayable($booking);
+                        } catch (DomainException $e) {
+                            $validator->errors()->add('qurbani_booking_token', $e->getMessage());
+                        }
+                    }
+                } elseif (filled($this->input('campaign_slug'))) {
                     $campaign = $this->campaign();
 
                     if ($campaign === null || $campaign->hasEnded()) {
@@ -114,7 +134,7 @@ class StartDonationRequest extends FormRequest
                 }
 
                 // JazzCash / Easypaisa need a Pakistani mobile: the wallet number, or the donor's own.
-                $donor = $this->donor();
+                $donor = $this->qurbaniBooking()->donor ?? $this->donor();
                 $phone = $donor !== null ? (string) $donor->phone : (string) $this->input('phone');
 
                 if ($method !== null && $method->isGateway() && blank($this->input('wallet_number'))
@@ -161,6 +181,7 @@ class StartDonationRequest extends FormRequest
             'dedication' => ['description' => 'On behalf of / in memory of.', 'example' => 'My late father'],
             'idempotency_key' => ['description' => 'A UUID; or send it as the Idempotency-Key header. Repeating it returns the same donation.', 'example' => '3f2b9f7c-8d1e-4a55-9c3e-1d2f3a4b5c6d'],
             'pledge_period_id' => ['description' => 'With a donor token: pay this pledge due date (pay_now.pledge_period_id from /me/recurring-plans).', 'example' => 31],
+            'qurbani_booking_token' => ['description' => 'Pay a Qurbani booking (booking_token from POST /qurbani/bookings). Fund, amount and donor come from the booking.', 'example' => 'eyJpdiI6…'],
         ];
     }
 
@@ -169,6 +190,14 @@ class StartDonationRequest extends FormRequest
         $donor = $this->user('sanctum');
 
         return $donor instanceof Donor ? $donor : null;
+    }
+
+    /** The Qurbani booking this donation pays (Week 11), from its token. */
+    public function qurbaniBooking(): ?QurbaniBooking
+    {
+        $token = $this->input('qurbani_booking_token');
+
+        return is_string($token) && $token !== '' ? QurbaniToken::booking($token) : null;
     }
 
     /** The donor's own unpaid pledge due date this donation pays, if given and valid. */

@@ -14,14 +14,17 @@ use App\Http\Requests\Site\DonateRequest;
 use App\Models\Campaign;
 use App\Models\Donation;
 use App\Models\Fund;
+use App\Models\QurbaniBooking;
 use App\Models\RecurringPlanPeriod;
 use App\Payments\Exceptions\GatewayNotAvailable;
 use App\Payments\GatewayRegistry;
 use App\Services\DonationService;
 use App\Services\PaymentService;
+use App\Services\QurbaniService;
 use App\Services\Site\WebDonorService;
 use App\Settings\GatewaySettings;
 use App\Support\PledgeToken;
+use App\Support\QurbaniToken;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,6 +54,7 @@ class DonateController extends Controller
         private readonly PaymentService $payments,
         private readonly WebDonorService $donors,
         private readonly GatewayRegistry $gateways,
+        private readonly QurbaniService $qurbani,
     ) {}
 
     public function create(Request $request): View
@@ -58,7 +62,8 @@ class DonateController extends Controller
         $campaign = null;
         $slug = $request->string('campaign')->toString();
         [$pledge, $pledgeNotice] = $this->pledgeFromLink($request);
-        $notice = $pledgeNotice;
+        [$booking, $bookingNotice] = $this->bookingFromLink($request);
+        $notice = $pledgeNotice ?? $bookingNotice;
 
         if ($pledge !== null) {
             // The reminder's pay link: the pledge's cause and amount, ready to pay.
@@ -83,6 +88,11 @@ class DonateController extends Controller
             $selectedFund = $pledge->plan->fund_id;
         }
 
+        if ($booking !== null) {
+            $campaign = null;
+            $selectedFund = $booking->season->fund_id;
+        }
+
         $prefill = preg_match('/^\d{1,9}$/', $request->string('amount')->toString()) === 1 ? $request->string('amount')->toString() : '';
 
         return view('site.donate.create', [
@@ -94,8 +104,14 @@ class DonateController extends Controller
             'presets' => config('donation.donate.presets'),
             'minAmount' => (int) config('donation.donate.min'),
             // ?amount=12500 from the Zakat calculator (whole rupees), or the pledge amount.
-            'prefillAmount' => old('amount', $pledge !== null ? (string) $pledge->amount : $prefill),
+            'prefillAmount' => old('amount', match (true) {
+                $booking !== null => (string) $booking->total_amount,
+                $pledge !== null => (string) $pledge->amount,
+                default => $prefill,
+            }),
             'pledge' => $pledge,
+            'booking' => $booking,
+            'qurbaniToken' => $booking !== null ? QurbaniToken::for($booking) : old('qurbani_token'),
             'pledgeToken' => $pledge !== null ? PledgeToken::for($pledge) : old('pledge_token'),
             'idempotencyKey' => old('idempotency_key') ?: (string) Str::uuid(),
             'notice' => $notice,
@@ -108,23 +124,43 @@ class DonateController extends Controller
         $campaignId = $request->filled('campaign_id') ? (int) $request->validated('campaign_id') : null;
 
         $pledge = $request->pledgePeriod();
+        $booking = $request->qurbaniBooking();
 
         try {
+            if ($booking !== null) {
+                // Week 11: the booking's donor pays the booking total into the season's fund.
+                $this->qurbani->assertPayable($booking);
+                $pledge = null;
+            }
+
             // From a pledge reminder: the pledge's donor gives; no contact details are asked.
-            ['donor' => $donor, 'notes' => $notes] = $pledge !== null ? ['donor' => $pledge->plan->donor, 'notes' => []] : $this->donors->resolve([
-                'name' => (string) $request->validated('name'),
-                'phone' => $request->optionalString('phone'),
-                'email' => $request->optionalString('email'),
-                'cnic' => $request->optionalString('cnic'),
-                'whatsapp_opt_in' => (bool) $request->validated('whatsapp_opt_in'),
-            ], app()->getLocale());
+            ['donor' => $donor, 'notes' => $notes] = match (true) {
+                $booking !== null => ['donor' => $booking->donor, 'notes' => []],
+                $pledge !== null => ['donor' => $pledge->plan->donor, 'notes' => []],
+                default => $this->donors->resolve([
+                    'name' => (string) $request->validated('name'),
+                    'phone' => $request->optionalString('phone'),
+                    'email' => $request->optionalString('email'),
+                    'cnic' => $request->optionalString('cnic'),
+                    'whatsapp_opt_in' => (bool) $request->validated('whatsapp_opt_in'),
+                ], app()->getLocale()),
+            };
+
+            if ($booking !== null) {
+                $campaignId = null;
+            }
 
             $donation = $this->donations->create([
                 'donor_id' => $donor->id,
                 'campaign_id' => $campaignId,
                 'recurring_plan_period_id' => $pledge?->id,
-                'fund_id' => $campaignId === null ? (int) $request->validated('fund_id') : null,
-                'amount' => $request->amount(),
+                'qurbani_booking_id' => $booking?->id,
+                'fund_id' => match (true) {
+                    $booking !== null => $booking->season->fund_id,
+                    $campaignId === null => (int) $request->validated('fund_id'),
+                    default => null,
+                },
+                'amount' => $booking !== null ? (string) $booking->total_amount : $request->amount(),
                 'channel' => DonationChannel::Web,
                 'payment_method' => $method,
                 'reference' => $method === PaymentMethod::BankTransfer ? trim((string) $request->validated('reference')) : null,
@@ -174,6 +210,32 @@ class DonateController extends Controller
         }
 
         return [$period, null];
+    }
+
+    /**
+     * The Qurbani booking form's hand-over (?qurbani=<token>): the booking, or a notice why not.
+     *
+     * @return array{0: QurbaniBooking|null, 1: string|null}
+     */
+    private function bookingFromLink(Request $request): array
+    {
+        if (! $request->has('qurbani')) {
+            return [null, null];
+        }
+
+        $booking = QurbaniToken::booking($request->string('qurbani')->toString());
+
+        if ($booking === null) {
+            return [null, __('That Qurbani booking link is not valid. Please book again.')];
+        }
+
+        try {
+            $this->qurbani->assertPayable($booking);
+        } catch (DomainException $e) {
+            return [null, $e->getMessage()];
+        }
+
+        return [$booking, null];
     }
 
     private function bankTransfer(DonateRequest $request, Donation $donation): RedirectResponse

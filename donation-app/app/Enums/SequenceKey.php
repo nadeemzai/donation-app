@@ -19,6 +19,7 @@ enum SequenceKey: string
     case Beneficiary = 'beneficiary';
     case Application = 'application';
     case Project = 'project';
+    case QurbaniBooking = 'qurbani_booking';
 
     public function prefix(NumberingSettings $settings): string
     {
@@ -31,6 +32,7 @@ enum SequenceKey: string
             self::Beneficiary => $settings->beneficiary_prefix,
             self::Application => $settings->application_prefix,
             self::Project => $settings->project_prefix,
+            self::QurbaniBooking => $settings->qurbani_booking_prefix,
         };
     }
 }

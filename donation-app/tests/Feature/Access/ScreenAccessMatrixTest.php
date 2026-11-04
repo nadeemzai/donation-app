@@ -48,6 +48,9 @@ function adminScreens(): array
         'disbursements create' => ['/admin/disbursements/create', 'disbursements', 'create'],
         'projects list' => ['/admin/projects', 'projects', 'view_any'],
         'projects create' => ['/admin/projects/create', 'projects', 'create'],
+        'qurbani seasons' => ['/admin/qurbani-seasons', 'qurbani', 'view_any'],
+        'qurbani seasons create' => ['/admin/qurbani-seasons/create', 'qurbani', 'create'],
+        'qurbani bookings' => ['/admin/qurbani-bookings', 'qurbani', 'view_any'],
     ];
 }
 
