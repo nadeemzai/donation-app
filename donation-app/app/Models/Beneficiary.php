@@ -149,8 +149,10 @@ class Beneficiary extends Model implements HasMedia
     }
 
     /**
-     * Field officers work only their own cases (§3.1 data scope): households assigned to
-     * them or that they registered. Every other role with beneficiary access sees all.
+     * Field officers work only their own cases (§3.1 data scope, NFR-11): households assigned
+     * to them, or that they registered and nobody has been assigned to yet. Once a manager moves
+     * the case to another officer, the registrar no longer sees it. Every other role with
+     * beneficiary access sees all.
      */
     public static function seesOnlyOwnCases(User $user): bool
     {
@@ -163,7 +165,8 @@ class Beneficiary extends Model implements HasMedia
 
     public function isCaseOf(User $user): bool
     {
-        return $this->assigned_officer_id === $user->id || $this->registered_by === $user->id;
+        return $this->assigned_officer_id === $user->id
+            || ($this->assigned_officer_id === null && $this->registered_by === $user->id);
     }
 
     /**
@@ -178,7 +181,9 @@ class Beneficiary extends Model implements HasMedia
 
         return $query->where(fn (Builder $q) => $q
             ->where('assigned_officer_id', $user->id)
-            ->orWhere('registered_by', $user->id));
+            ->orWhere(fn (Builder $unassigned) => $unassigned
+                ->whereNull('assigned_officer_id')
+                ->where('registered_by', $user->id)));
     }
 
     /** "35202-•••••••-1" — the full CNIC is never shown on screens. */
