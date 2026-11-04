@@ -5,6 +5,7 @@
         ['label' => __('Home'), 'url' => route('home'), 'active' => request()->routeIs('home')],
         ['label' => __('Campaigns'), 'url' => route('campaigns.index'), 'active' => request()->routeIs('campaigns.*')],
         ['label' => __('Ways to give'), 'url' => route('funds.index'), 'active' => request()->routeIs('funds.*')],
+        ['label' => __('Projects'), 'url' => route('projects.index'), 'active' => request()->routeIs('projects.*')],
         Route::has('zakat') ? ['label' => __('Zakat calculator'), 'url' => route('zakat'), 'active' => request()->routeIs('zakat')] : null,
         $sitePages->contains('slug', 'about') ? ['label' => __('About us'), 'url' => route('pages.show', 'about'), 'active' => request()->is('about')] : null,
         $sitePages->contains('slug', 'contact') ? ['label' => __('Contact'), 'url' => route('pages.show', 'contact'), 'active' => request()->is('contact')] : null,

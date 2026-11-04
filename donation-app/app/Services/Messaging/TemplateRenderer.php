@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Messaging;
 
 use App\Models\Donation;
+use App\Models\Donor;
+use App\Models\ImpactUpdate;
 use App\Models\MessageTemplate;
 use App\Models\Receipt;
 use App\Models\RecurringPlanPeriod;
@@ -115,6 +117,26 @@ class TemplateRenderer
             'date' => $period->due_on->format('d M Y'),
             'due_date' => $period->due_on->format('d M Y'),
             'pay_link' => $payLink,
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
+     * Placeholder values for a project impact update.
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForImpactUpdate(ImpactUpdate $update, Donor $donor): array
+    {
+        $project = $update->project;
+
+        return [
+            'donor_name' => $donor->name,
+            'fund' => $project->fund->name,
+            'project' => $project->name,
+            'update_title' => $update->title,
+            'link' => route('projects.show', $project->slug).'#update-'.$update->id,
+            'date' => $update->published_at?->format('d M Y'),
             'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
         ];
     }

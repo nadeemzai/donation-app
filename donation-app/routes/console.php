@@ -50,3 +50,9 @@ Schedule::command('pledges:remind')
     ->timezone('Asia/Karachi')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Week 10: project impact updates go to linked donors once their publish time has come.
+Schedule::command('impact:notify')
+    ->everyTenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
