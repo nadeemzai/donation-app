@@ -68,7 +68,8 @@ class DonationController extends Controller
     public function store(StartDonationRequest $request, WebDonorService $donors): JsonResponse
     {
         $method = $request->paymentMethod();
-        $donor = $request->donor();
+        $booking = $request->qurbaniBooking();
+        $donor = $booking->donor ?? $request->donor();
         $notes = [];
 
         if ($donor === null) {
@@ -81,14 +82,19 @@ class DonationController extends Controller
             ], app()->getLocale());
         }
 
-        $campaign = $request->campaign();
+        $campaign = $booking === null ? $request->campaign() : null;
 
         $donation = $this->donations->create([
             'donor_id' => $donor->id,
             'campaign_id' => $campaign?->id,
-            'fund_id' => $campaign !== null ? null : $request->fund()?->id,
-            'recurring_plan_period_id' => $request->pledgePeriod()?->id,
-            'amount' => $request->amount(),
+            'fund_id' => match (true) {
+                $booking !== null => $booking->season->fund_id,
+                $campaign !== null => null,
+                default => $request->fund()?->id,
+            },
+            'recurring_plan_period_id' => $booking === null ? $request->pledgePeriod()?->id : null,
+            'qurbani_booking_id' => $booking?->id,
+            'amount' => $booking !== null ? (string) $booking->total_amount : $request->amount(),
             'channel' => DonationChannel::Mobile,
             'payment_method' => $method,
             'is_anonymous' => (bool) $request->validated('is_anonymous'),

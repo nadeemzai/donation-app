@@ -7,12 +7,14 @@ namespace App\Http\Requests\Site;
 use App\Enums\PaymentMethod;
 use App\Models\Campaign;
 use App\Models\Fund;
+use App\Models\QurbaniBooking;
 use App\Models\RecurringPlanPeriod;
 use App\Payments\GatewayRegistry;
 use App\Support\Cnic;
 use App\Support\Money;
 use App\Support\Phone;
 use App\Support\PledgeToken;
+use App\Support\QurbaniToken;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -24,6 +26,10 @@ class DonateRequest extends FormRequest
     private ?RecurringPlanPeriod $pledge = null;
 
     private bool $pledgeResolved = false;
+
+    private ?QurbaniBooking $booking = null;
+
+    private bool $bookingResolved = false;
 
     public function authorize(): bool
     {
@@ -51,14 +57,17 @@ class DonateRequest extends FormRequest
         $max = (int) config('donation.donate.max');
         $methods = array_map(fn (PaymentMethod $m): string => $m->value, app(GatewayRegistry::class)->donorMethods());
         $bank = PaymentMethod::BankTransfer->value;
-        $pledge = $this->pledgePeriod() !== null;
+        $booking = $this->qurbaniBooking() !== null;
+        // A pledge reminder's pay link and a Qurbani booking already know the donor.
+        $pledge = $this->pledgePeriod() !== null || $booking;
 
         return [
             'campaign_id' => ['nullable', 'integer'],
-            'fund_id' => ['nullable', 'required_without:campaign_id', 'integer'],
-            'amount' => ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/', 'numeric', "min:{$min}", "max:{$max}"],
-            // A pledge reminder's pay link gives the donor; nobody else is asked for details.
+            'fund_id' => ['nullable', $booking ? 'nullable' : 'required_without:campaign_id', 'integer'],
+            // A Qurbani booking's amount is the booking total, set by the server.
+            'amount' => $booking ? ['nullable'] : ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/', 'numeric', "min:{$min}", "max:{$max}"],
             'pledge_token' => ['nullable', 'string', 'max:1000'],
+            'qurbani_token' => ['nullable', 'string', 'max:1000'],
             'name' => [$pledge ? 'nullable' : 'required', 'string', 'min:2', 'max:120'],
             // Overseas donors may give a number abroad (+44…) or only an email.
             'phone' => ['nullable', $pledge ? 'nullable' : 'required_without:email', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
@@ -91,7 +100,7 @@ class DonateRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
-                if ($validator->errors()->hasAny(['campaign_id', 'fund_id'])) {
+                if ($this->qurbaniBooking() !== null || $validator->errors()->hasAny(['campaign_id', 'fund_id'])) {
                     return;
                 }
 
@@ -113,8 +122,8 @@ class DonateRequest extends FormRequest
             function (Validator $validator): void {
                 $method = PaymentMethod::tryFrom((string) $this->input('payment_method'));
 
-                $pledge = $this->pledgePeriod();
-                $phone = $pledge !== null ? (string) $pledge->plan->donor->phone : (string) $this->input('phone');
+                $knownDonor = $this->pledgePeriod()?->plan->donor ?? $this->qurbaniBooking()?->donor;
+                $phone = $knownDonor !== null ? (string) $knownDonor->phone : (string) $this->input('phone');
 
                 if ($method !== null && $method->isGateway() && ! $validator->errors()->has('phone') && ! Phone::isPakistaniMobile($phone)) {
                     $validator->errors()->add('payment_method', __(':method needs a Pakistani mobile number. From abroad, please pay by bank transfer.', ['method' => $method->label()]));
@@ -169,6 +178,17 @@ class DonateRequest extends FormRequest
         }
 
         return $this->pledge;
+    }
+
+    /** The Qurbani booking this donation pays, from the booking form (Week 11). */
+    public function qurbaniBooking(): ?QurbaniBooking
+    {
+        if (! $this->bookingResolved) {
+            $this->booking = QurbaniToken::booking(is_string($this->input('qurbani_token')) ? $this->input('qurbani_token') : null);
+            $this->bookingResolved = true;
+        }
+
+        return $this->booking;
     }
 
     public function paymentMethod(): PaymentMethod

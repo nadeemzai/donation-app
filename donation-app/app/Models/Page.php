@@ -40,7 +40,7 @@ class Page extends Model
     /** First URL segments used by the app — a page can never take one. */
     public const RESERVED_SLUGS = [
         'admin', 'api', 'livewire', 'up', 'storage', 'build', 'images', 'fonts', 'css', 'js', 'vendor', 'filament',
-        'payments', 'my-donations', 'donate', 'zakat', 'campaigns', 'projects', 'ways-to-give', 'contact-message',
+        'payments', 'my-donations', 'donate', 'zakat', 'campaigns', 'projects', 'qurbani', 'ways-to-give', 'contact-message',
         'login', 'logout', 'register', 'home', 'sitemap', 'robots',
     ];
 

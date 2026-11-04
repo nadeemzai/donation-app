@@ -110,6 +110,7 @@ The docs are always open on local and staging. On the live site they are hidden 
 | App | `GET /health` · `GET /app/config` | — |
 | Catalog | `GET /banners` · `GET /funds` · `GET /campaigns` · `GET /campaigns/{slug}` · `GET /campaigns/{slug}/updates` | — |
 | Projects | `GET /projects` · `GET /projects/{slug}` · `GET /projects/{slug}/updates` · `GET /project-updates` | — |
+| Qurbani | `GET /qurbani` · `POST /qurbani/bookings` → pay with `POST /donations` + `qurbani_booking_token` | optional |
 | Content | `GET /impact-updates` (campaign updates) · `GET /pages/{slug}` · `POST /zakat/calculate` | — |
 | Auth | `POST /auth/register` · `POST /auth/login` · `POST /auth/otp/send` · `POST /auth/otp/verify` | — |
 | Auth | `POST /auth/logout` | ✔ |
