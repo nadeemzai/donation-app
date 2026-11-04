@@ -19,7 +19,7 @@ class ListBeneficiaries extends ListRecords
         $user = BeneficiaryResource::currentUser();
 
         return $user !== null && Beneficiary::seesOnlyOwnCases($user)
-            ? 'Households assigned to you or registered by you.'
+            ? 'Households assigned to you, or registered by you and not yet assigned.'
             : null;
     }
 
