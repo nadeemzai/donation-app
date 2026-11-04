@@ -5,23 +5,24 @@ declare(strict_types=1);
 use App\Enums\Role;
 use App\Support\AdminPalette;
 
-// The colourful admin theme: brand crimson + one bright colour per area, on every panel page.
+// Colourful dashboard: gradient stat cards and colourful charts — on the dashboard only.
 
-it('adds the colourful theme to the login page', function () {
-    $this->get('/admin/login')
-        ->assertOk()
-        ->assertSee('--imd-sidebar', false)
-        ->assertSee('.fi-simple-layout', false);
-});
-
-it('colours the dashboard cards and the sidebar groups', function () {
+it('colours the dashboard cards', function () {
     $this->actingAs(staffUser(Role::SuperAdmin))
         ->get('/admin')
         ->assertOk()
         ->assertSee('imd-stat imd-stat-crimson', false)
         ->assertSee('imd-stat imd-stat-emerald', false)
-        ->assertSee('[data-group-label="Donations"]', false)
-        ->assertSee(AdminPalette::CRIMSON, false);
+        ->assertSee('.imd-stat-violet', false);
+});
+
+it('leaves the menu and other screens in the standard colours', function () {
+    $this->actingAs(staffUser(Role::SuperAdmin))
+        ->get('/admin/donors')
+        ->assertOk()
+        ->assertDontSee('.imd-stat-crimson', false);
+
+    $this->get('/admin/login')->assertDontSee('.imd-stat', false);
 });
 
 it('builds gradient classes for every tone and falls back to slate', function () {

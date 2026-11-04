@@ -7,7 +7,6 @@ namespace App\Providers\Filament;
 use App\Http\Middleware\RequireMfaForPrivilegedRoles;
 use App\Http\Middleware\SecurityHeaders;
 use App\Settings\GeneralSettings;
-use App\Support\AdminPalette;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -61,20 +60,13 @@ class AdminPanelProvider extends PanelProvider
             // Name from Settings → General ("Imdaad"); same favicon as the public website.
             ->brandName(fn (): string => app(GeneralSettings::class)->org_name ?: 'Imdaad')
             ->favicon(asset('favicon.svg'))
-            // Imdaad brand crimson (as on the website) + a bright colour per meaning.
             ->colors([
-                'primary' => Color::hex(AdminPalette::CRIMSON),
-                'success' => Color::Emerald,
-                'info' => Color::Sky,
-                'warning' => Color::Amber,
-                'danger' => Color::Red,
+                'primary' => Color::hex('#1F3A68'),
+                'info' => Color::hex('#2B5BA8'),
                 'gray' => Color::Slate,
-                'violet' => Color::Violet,
-                'teal' => Color::Teal,
-                'pink' => Color::Pink,
             ])
-            // Colourful sidebar, top bar, cards and login page (plain CSS, no build step).
-            ->renderHook(PanelsRenderHook::HEAD_END, fn (): View => view('filament.admin-theme'))
+            // Colourful cards and charts on the dashboard only (plain CSS, no build step).
+            ->renderHook(PanelsRenderHook::HEAD_END, fn (): View => view('filament.admin-theme'), scopes: Dashboard::class)
             ->darkMode(true)
             ->spa()
             ->databaseNotifications()

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Support;
 
 /**
- * The admin panel's colours (Imdaad brand + one bright colour per area). Used by the panel
- * stylesheet (resources/views/filament/admin-theme.blade.php), dashboard cards and charts,
- * so every screen uses the same set.
+ * Dashboard colours (Imdaad brand crimson + bright accents). Used by the dashboard stylesheet
+ * (resources/views/filament/admin-theme.blade.php), the stat cards and the charts. The menu
+ * and other screens keep the standard panel colours.
  */
 final class AdminPalette
 {
@@ -29,20 +29,6 @@ final class AdminPalette
 
     /** Solid colours for charts, bars and dots, in order. */
     public const SERIES = ['#e5254b', '#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#14b8a6', '#ec4899', '#6366f1', '#84cc16', '#f97316'];
-
-    /** Colour of each sidebar group's icons. */
-    public const GROUPS = [
-        'Dashboard' => '#fda4af',
-        'Donations' => '#6ee7b7',
-        'Campaigns' => '#fcd34d',
-        'Donors' => '#7dd3fc',
-        'Programs' => '#c4b5fd',
-        'Seasonal' => '#5eead4',
-        'Inventory' => '#fdba74',
-        'Finance' => '#86efac',
-        'Content' => '#f9a8d4',
-        'Settings' => '#cbd5e1',
-    ];
 
     /** The nth series colour, repeating. */
     public static function series(int $index): string
