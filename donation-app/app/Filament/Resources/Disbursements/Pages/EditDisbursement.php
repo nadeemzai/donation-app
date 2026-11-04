@@ -48,7 +48,13 @@ class EditDisbursement extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        unset($data['application_id'], $data['requested_by']);
+        unset($data['application_id'], $data['project_id'], $data['requested_by']);
+
+        $record = $this->getRecord();
+
+        if ($record instanceof Disbursement && $record->project_id !== null) {
+            unset($data['fund_id']); // a project is paid from its own fund
+        }
 
         if (blank($data['payee_account'] ?? null)) {
             unset($data['payee_account']);
@@ -70,6 +76,14 @@ class EditDisbursement extends EditRecord
 
                 if ($left !== null && bccomp(Money::normalise((string) $data['amount']), $left, 2) > 0) {
                     throw new DomainException('Only '.Money::rupees($left).' is left to pay on this application.');
+                }
+            }
+
+            if ($record->project !== null && isset($data['amount'])) {
+                $left = bcadd($record->project->budgetLeft(), (string) $record->amount, 2);
+
+                if (bccomp(Money::normalise((string) $data['amount']), $left, 2) > 0) {
+                    throw new DomainException('Only '.Money::rupees($left).' is left of this project’s budget.');
                 }
             }
 

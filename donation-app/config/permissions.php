@@ -41,6 +41,7 @@ return [
         'receipts' => ['F', 'V', 'C', '-', '-', '-', 'V'], // receipts & certificates
         'beneficiaries' => ['F', 'C', 'V', '-', 'C', 'V', 'V'], // beneficiaries & applications
         'disbursements' => ['F', 'A', 'C', '-', 'C', 'A', 'V'],
+        'projects' => ['F', 'C', 'V', 'C', 'V', 'V', 'V'], // projects & milestones (Week 10); spend comes from disbursements
         'qurbani' => ['F', 'C', 'C', 'C', 'C', 'V', 'V'], // qurbani & inventory
         'ledger' => ['F', 'V', 'C', '-', '-', 'V', 'V'], // ledger & reconciliation
         'reports' => ['F', 'V', 'V', 'V', 'V', 'V', 'V'], // reports & dashboard

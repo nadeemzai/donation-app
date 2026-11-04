@@ -20,6 +20,7 @@ it('loads defaults for every settings group', function () {
         ->donor_prefix->toBe('DR')
         ->beneficiary_prefix->toBe('BN')
         ->application_prefix->toBe('AP')
+        ->project_prefix->toBe('PR')
         ->pad_length->toBe(6)
         ->and(app(ApprovalSettings::class)->allow_founder_self_approval)->toBeTrue() // BR-06 at launch
         ->and(app(GatewaySettings::class))

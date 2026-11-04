@@ -25,6 +25,8 @@ class NumberingSettings extends Settings
 
     public string $application_prefix;
 
+    public string $project_prefix;
+
     public int $pad_length;
 
     public static function group(): string
