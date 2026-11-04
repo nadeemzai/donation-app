@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\ApplicationStatus;
+use App\Enums\BeneficiaryStatus;
 use App\Enums\DisbursementStatus;
 use App\Enums\PayoutMethod;
+use App\Events\DisbursementPaid;
+use App\Exceptions\InsufficientFundBalance;
 use App\Models\Application;
 use App\Models\Approval;
 use App\Models\Disbursement;
@@ -14,6 +17,7 @@ use App\Models\Fund;
 use App\Models\User;
 use App\Support\Money;
 use DomainException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -25,8 +29,15 @@ use InvalidArgumentException;
  *   approve()    → one approval decision (ApprovalService: levels, BR-06 self-approval)
  *   reject()     → ends the request, with a reason
  *   withdraw()   → the requester (or an approver) cancels it before it is paid
+ *   markPaid()   → Finance records the payout; money payouts post the ledger debit (FR-DSB-03)
  *
- * Day 3 adds: balance and Zakat checks at approval, marking paid with the ledger debit.
+ * Safety rules, checked when requested, at every approval and again when paid:
+ *   BR-02  a Zakat fund pays only a household decided Zakat-eligible — never a project,
+ *          an archived or inactive household
+ *   BR-07  a fund never goes below zero: at approval the amount must fit in the fund's
+ *          balance minus payouts already approved and not yet paid; the ledger debit at
+ *          payment re-checks the real balance under a lock
+ * In-kind payouts (goods) post no money debit; stock-out comes with inventory (Week 11).
  */
 class DisbursementService
 {
@@ -50,6 +61,8 @@ class DisbursementService
             if ($fund === null || ! $fund->is_active) {
                 throw new DomainException('Choose an active fund to pay from.');
             }
+
+            $this->assertZakatUse($fund, $application);
 
             $amount = $this->amount($data['amount'] ?? null);
             $left = $this->remainingFor($application);
@@ -118,6 +131,143 @@ class DisbursementService
         });
 
         return $disbursement->refresh();
+    }
+
+    /**
+     * Called by Disbursement::recordApprovalDecision() for every approval, on the locked row
+     * and inside the approval transaction — a failure undoes that approval.
+     */
+    public function assertCanBeApproved(Disbursement $disbursement): void
+    {
+        $fund = Fund::withTrashed()->lockForUpdate()->findOrFail($disbursement->fund_id);
+
+        if (! $fund->is_active || $fund->trashed()) {
+            throw new DomainException("{$fund->name} is not active — choose another fund.");
+        }
+
+        $this->assertZakatUse($fund, $disbursement->application, $disbursement->project_id);
+
+        if ($disbursement->method === PayoutMethod::InKind) {
+            return;
+        }
+
+        $available = $this->availableIn($fund, except: $disbursement);
+
+        if (bccomp((string) $disbursement->amount, $available, 2) > 0) {
+            throw new DomainException(sprintf(
+                'Not enough money in %s: %s available after payouts already approved (balance %s), %s needed (BR-07).',
+                $fund->name,
+                Money::rupees($available),
+                Money::rupees((string) $fund->balance),
+                Money::rupees((string) $disbursement->amount),
+            ));
+        }
+    }
+
+    /**
+     * Finance records that the money (or goods) went out. Money payouts are debited from the
+     * fund in the same transaction; if the fund no longer holds enough, nothing changes.
+     */
+    public function markPaid(Disbursement $disbursement, ?string $reference, ?User $by = null, ?Carbon $paidAt = null): Disbursement
+    {
+        $reference = trim((string) $reference);
+        $paidAt ??= now();
+
+        if ($paidAt->isFuture()) {
+            throw new DomainException('The payment date cannot be in the future.');
+        }
+
+        DB::transaction(function () use ($disbursement, $reference, $by, $paidAt): void {
+            // Lock order: disbursement → fund (FundLedgerService locks the fund).
+            $locked = Disbursement::query()->lockForUpdate()->findOrFail($disbursement->id);
+
+            if ($locked->status !== DisbursementStatus::Approved) {
+                throw new DomainException("This disbursement is {$locked->status->label()} — only an approved disbursement can be paid.");
+            }
+
+            if ($reference === '' && $locked->method->needsAccount()) {
+                throw new DomainException("Enter the {$locked->method->label()} transaction reference.");
+            }
+
+            $fund = Fund::withTrashed()->findOrFail($locked->fund_id);
+            $this->assertZakatUse($fund, $locked->application, $locked->project_id);
+
+            if ($locked->method !== PayoutMethod::InKind) {
+                try {
+                    app(FundLedgerService::class)->debit(
+                        $fund,
+                        (string) $locked->amount,
+                        $locked,
+                        "Disbursement {$locked->disbursement_no} to {$locked->payee_name}",
+                        $by,
+                    );
+                } catch (InsufficientFundBalance $e) {
+                    throw new DomainException($e->getMessage().' Nothing was paid (BR-07).', previous: $e);
+                }
+            }
+
+            $locked->forceFill([
+                'status' => DisbursementStatus::Paid,
+                'paid_at' => $paidAt,
+                'paid_by' => $by?->id,
+                'payment_reference' => $reference === '' ? null : $reference,
+            ])->save();
+
+            activity('audit')->performedOn($locked)->causedBy($by)->event('paid')
+                ->withProperties([
+                    'amount' => (string) $locked->amount,
+                    'fund_id' => $locked->fund_id,
+                    'reference' => $locked->payment_reference,
+                    'self_approved' => $locked->is_self_approved,
+                    'ledger' => $locked->method !== PayoutMethod::InKind,
+                ])
+                ->log("Disbursement {$locked->disbursement_no} paid: ".Money::rupees((string) $locked->amount)
+                    .($locked->is_self_approved ? ' (self-approved)' : ''));
+
+            DisbursementPaid::dispatch($locked);
+        });
+
+        return $disbursement->refresh();
+    }
+
+    /**
+     * What a fund can still promise: its balance minus money payouts approved but not yet paid
+     * (paid ones are already off the balance).
+     */
+    public function availableIn(Fund $fund, ?Disbursement $except = null): string
+    {
+        $committed = (string) Disbursement::query()
+            ->where('fund_id', $fund->id)
+            ->where('status', DisbursementStatus::Approved->value)
+            ->where('method', '!=', PayoutMethod::InKind->value)
+            ->when($except !== null, fn ($q) => $q->whereKeyNot($except?->id))
+            ->sum('amount');
+
+        return bcsub((string) $fund->balance, $committed, 2);
+    }
+
+    /**
+     * BR-02: Zakat money only for a household decided Zakat-eligible, still active.
+     */
+    public function assertZakatUse(Fund $fund, ?Application $application, ?int $projectId = null): void
+    {
+        if (! $fund->is_zakat) {
+            return;
+        }
+
+        if ($application === null || $projectId !== null) {
+            throw new DomainException("{$fund->name} is a Zakat fund — it can only pay a Zakat-eligible household, not a project (BR-02).");
+        }
+
+        $beneficiary = $application->beneficiary;
+
+        if ($beneficiary->trashed() || $beneficiary->status === BeneficiaryStatus::Inactive) {
+            throw new DomainException("{$beneficiary->name} is archived or inactive — Zakat cannot be paid (BR-02).");
+        }
+
+        if (! $beneficiary->is_zakat_eligible || $beneficiary->zakat_decided_at === null) {
+            throw new DomainException("{$fund->name} is a Zakat fund and {$beneficiary->name} has not been decided Zakat-eligible (BR-02).");
+        }
     }
 
     /**

@@ -9,28 +9,14 @@ use App\Filament\Resources\Disbursements\Pages\EditDisbursement;
 use App\Filament\Resources\Disbursements\Pages\ListDisbursements;
 use App\Filament\Resources\Disbursements\Pages\ViewDisbursement;
 use App\Models\Application;
-use App\Models\Beneficiary;
 use App\Models\Disbursement;
 use App\Models\Fund;
 use App\Models\User;
-use App\Models\VerificationVisit;
-use App\Services\ApplicationWorkflowService;
 use App\Services\DisbursementService;
 use Livewire\Livewire;
 use Spatie\Activitylog\Models\Activity;
 
 // W10-D2 — FR-DSB-01/02/04, BR-06, §3.1 (area: disbursements): the Disbursements screen.
-
-/** An approved application for a household that $officer looks after. */
-function approvedApplication(?User $officer = null, ?string $approved = '20000'): Application
-{
-    $beneficiary = Beneficiary::factory()->create(['assigned_officer_id' => $officer?->id]);
-    $application = Application::factory()->create(['beneficiary_id' => $beneficiary->id, 'assigned_officer_id' => $officer?->id, 'requested_amount' => $approved]);
-    app(ApplicationWorkflowService::class)->startVerification($application);
-    VerificationVisit::factory()->for($application)->create();
-
-    return app(ApplicationWorkflowService::class)->approve($application->refresh(), $approved);
-}
 
 /**
  * @param  array<string, mixed>  $overrides
@@ -39,7 +25,7 @@ function requestPayout(Application $application, ?User $by = null, array $overri
 {
     return app(DisbursementService::class)->request([
         'application_id' => $application->id,
-        'fund_id' => Fund::factory()->create()->id,
+        'fund_id' => Fund::factory()->funded()->create()->id,
         'amount' => '5000',
         'method' => 'cash',
         'purpose' => 'Ration for January.',
@@ -73,7 +59,7 @@ describe('requesting', function () {
     it('requests a payout from the form, pre-filled from the application', function () {
         $finance = staffUser(Role::Finance);
         $application = approvedApplication();
-        $fund = Fund::factory()->create();
+        $fund = Fund::factory()->funded()->create();
         $this->actingAs($finance);
 
         Livewire::test(CreateDisbursement::class)
@@ -97,9 +83,9 @@ describe('requesting', function () {
 
         expect(fn () => app(DisbursementService::class)->request($data($application), null))->toThrow(DomainException::class, $message);
     })->with([
-        'not approved' => [fn (Application $a) => ['application_id' => Application::factory()->create()->id, 'fund_id' => Fund::factory()->create()->id, 'amount' => '100', 'method' => 'cash', 'purpose' => 'x'], 'only approved applications'],
+        'not approved' => [fn (Application $a) => ['application_id' => Application::factory()->create()->id, 'fund_id' => Fund::factory()->funded()->create()->id, 'amount' => '100', 'method' => 'cash', 'purpose' => 'x'], 'only approved applications'],
         'inactive fund' => [fn (Application $a) => ['application_id' => $a->id, 'fund_id' => Fund::factory()->inactive()->create()->id, 'amount' => '100', 'method' => 'cash', 'purpose' => 'x'], 'active fund'],
-        'more than left' => [fn (Application $a) => ['application_id' => $a->id, 'fund_id' => Fund::factory()->create()->id, 'amount' => '3000.01', 'method' => 'cash', 'purpose' => 'x'], 'Only Rs 3,000.00 is left'],
+        'more than left' => [fn (Application $a) => ['application_id' => $a->id, 'fund_id' => Fund::factory()->funded()->create()->id, 'amount' => '3000.01', 'method' => 'cash', 'purpose' => 'x'], 'Only Rs 3,000.00 is left'],
     ]);
 
     it('frees the amount again when a request is rejected or withdrawn', function () {
@@ -117,7 +103,7 @@ describe('requesting', function () {
         $this->actingAs($officer);
 
         Livewire::test(CreateDisbursement::class)
-            ->fillForm(['application_id' => $notMine->id, 'fund_id' => Fund::factory()->create()->id, 'amount' => 100, 'method' => 'cash', 'payee_name' => 'X', 'purpose' => 'x'])
+            ->fillForm(['application_id' => $notMine->id, 'fund_id' => Fund::factory()->funded()->create()->id, 'amount' => 100, 'method' => 'cash', 'payee_name' => 'X', 'purpose' => 'x'])
             ->call('create')
             ->assertHasFormErrors(['application_id']);
 
@@ -173,7 +159,7 @@ describe('deciding from the screen', function () {
 
         Livewire::test(CreateDisbursement::class)
             ->fillForm(['application_id' => approvedApplication()->id])
-            ->fillForm(['fund_id' => Fund::factory()->create()->id, 'amount' => 5000, 'method' => 'cash', 'purpose' => 'Emergency ration.'])
+            ->fillForm(['fund_id' => Fund::factory()->funded()->create()->id, 'amount' => 5000, 'method' => 'cash', 'purpose' => 'Emergency ration.'])
             ->call('create')
             ->assertHasNoFormErrors();
 

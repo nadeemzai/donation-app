@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Disbursements;
 
+use App\Enums\PayoutMethod;
 use App\Models\Disbursement;
 use App\Models\User;
 use App\Services\ApprovalService;
@@ -11,11 +12,14 @@ use App\Services\DisbursementService;
 use App\Support\Money;
 use DomainException;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Carbon;
 
-/** Approve / Reject / Withdraw, shared by the list and the disbursement page. All via DisbursementService. */
+/** Mark paid / Approve / Reject / Withdraw, shared by the list and the disbursement page. All via DisbursementService. */
 final class DisbursementActions
 {
     /**
@@ -23,7 +27,49 @@ final class DisbursementActions
      */
     public static function all(): array
     {
-        return [self::approve(), self::reject(), self::withdraw()];
+        return [self::markPaid(), self::approve(), self::reject(), self::withdraw()];
+    }
+
+    /** FR-DSB-03: record the payout; money payouts are debited from the fund ledger. */
+    public static function markPaid(): Action
+    {
+        return Action::make('markPaid')
+            ->label('Mark paid')
+            ->icon(Heroicon::OutlinedBanknotes)
+            ->color('success')
+            ->visible(fn (Disbursement $record): bool => self::allowed('markPaid', $record))
+            ->modalHeading(fn (Disbursement $record): string => 'Record payment of '.$record->disbursement_no)
+            ->modalDescription(fn (Disbursement $record): string => $record->method === PayoutMethod::InKind
+                ? 'Goods handed over. No money is taken from the fund.'
+                : sprintf(
+                    '%s will be taken from %s (balance now %s). This cannot be undone — a mistake is corrected with a new entry.',
+                    Money::rupees((string) $record->amount),
+                    $record->fund->name,
+                    Money::rupees((string) $record->fund->fresh()?->balance),
+                ))
+            ->fillForm(['paid_at' => now()])
+            ->schema([
+                DateTimePicker::make('paid_at')->label('Paid on')->native(false)->seconds(false)->maxDate(now()->endOfDay())->required(),
+                TextInput::make('payment_reference')
+                    ->label(fn (Disbursement $record): string => $record->method->needsAccount() ? 'Transaction reference' : 'Receipt / voucher no. (optional)')
+                    ->maxLength(100)
+                    ->required(fn (Disbursement $record): bool => $record->method->needsAccount()),
+            ])
+            ->modalSubmitActionLabel('Mark paid')
+            ->action(function (Disbursement $record, array $data): void {
+                self::run(function () use ($record, $data): string {
+                    app(DisbursementService::class)->markPaid(
+                        $record,
+                        is_string($data['payment_reference'] ?? null) ? $data['payment_reference'] : null,
+                        self::user(),
+                        Carbon::parse((string) ($data['paid_at'] ?? now())),
+                    );
+
+                    return $record->method === PayoutMethod::InKind
+                        ? 'Recorded as handed over.'
+                        : 'Debited from '.$record->fund->name.'.';
+                }, 'Disbursement paid');
+            });
     }
 
     public static function approve(): Action
@@ -118,6 +164,11 @@ final class DisbursementActions
             $level,
             $record->required_approvals,
         );
+
+        if ($record->method !== PayoutMethod::InKind) {
+            $text .= ' Available in the fund after payouts already approved: '
+                .Money::rupees(app(DisbursementService::class)->availableIn($record->fund)).'.';
+        }
 
         if ($record->requested_by === self::user()?->id) {
             $text .= ' You made this request: it will be flagged "self-approved" in lists, reports and the audit log.';
