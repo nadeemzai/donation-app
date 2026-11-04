@@ -6,6 +6,7 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Widgets\Concerns\ChecksPermission;
 use App\Services\DashboardStats;
+use App\Support\AdminPalette;
 use Carbon\CarbonImmutable;
 use Filament\Widgets\ChartWidget;
 
@@ -40,10 +41,14 @@ class CollectionsTrendChart extends ChartWidget
             'datasets' => [[
                 'label' => 'Rs received',
                 'data' => array_map(fn (string $amount): float => (float) $amount, array_values($daily)), // display only
-                'borderColor' => '#e5254b',
-                'backgroundColor' => 'rgba(229, 37, 75, 0.12)',
+                'borderColor' => AdminPalette::CRIMSON,
+                'backgroundColor' => AdminPalette::alpha(AdminPalette::CRIMSON, 0.15),
+                'pointBackgroundColor' => '#8b5cf6',
+                'pointBorderColor' => '#ffffff',
+                'pointRadius' => 3,
+                'borderWidth' => 3,
                 'fill' => true,
-                'tension' => 0.3,
+                'tension' => 0.35,
             ]],
             'labels' => array_map(fn (string $day): string => CarbonImmutable::parse($day)->format('d M'), array_keys($daily)),
         ];

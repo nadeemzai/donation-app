@@ -7,6 +7,7 @@ namespace App\Filament\Widgets;
 use App\Enums\MessageChannel;
 use App\Enums\MessageStatus;
 use App\Models\MessageLog;
+use App\Support\AdminPalette;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -40,13 +41,16 @@ class MessagingStats extends StatsOverviewWidget
         return [
             Stat::make('WhatsApp sent today', (string) $today(MessageChannel::WhatsApp, MessageStatus::Sent))
                 ->description($waFailed > 0 ? "{$waFailed} failed today" : 'No failures today')
-                ->color($waFailed > 0 ? 'danger' : 'success'),
+                ->color($waFailed > 0 ? 'danger' : 'success')
+                ->extraAttributes(AdminPalette::stat($waFailed > 0 ? 'red' : 'emerald')),
             Stat::make('Emails sent today', (string) $today(MessageChannel::Email, MessageStatus::Sent))
                 ->description($emailFailed > 0 ? "{$emailFailed} failed today" : 'No failures today')
-                ->color($emailFailed > 0 ? 'danger' : 'success'),
+                ->color($emailFailed > 0 ? 'danger' : 'success')
+                ->extraAttributes(AdminPalette::stat($emailFailed > 0 ? 'red' : 'sky')),
             Stat::make('Waiting to send', (string) $queued)
                 ->description($queued > 0 ? 'Is the queue worker running?' : 'Queue is empty')
-                ->color($queued > 0 ? 'warning' : 'gray'),
+                ->color($queued > 0 ? 'warning' : 'gray')
+                ->extraAttributes(AdminPalette::stat($queued > 0 ? 'amber' : 'violet')),
         ];
     }
 }
