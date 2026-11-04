@@ -11,6 +11,7 @@ use App\Enums\PayoutMethod;
 use App\Enums\SequenceKey;
 use App\Models\Concerns\Auditable;
 use App\Services\ApprovalService;
+use App\Services\DisbursementService;
 use App\Services\NumberSequenceService;
 use Database\Factories\DisbursementFactory;
 use DomainException;
@@ -250,10 +251,15 @@ class Disbursement extends Model implements Approvable
 
     /**
      * Called by ApprovalService on the locked row, inside its transaction. Throwing a
-     * DomainException here undoes the decision (Day 3 adds the balance and Zakat checks).
+     * DomainException here undoes the decision.
      */
     public function recordApprovalDecision(Approval $decision, bool $complete): void
     {
+        if ($decision->decision === ApprovalDecision::Approved) {
+            // BR-02 / BR-07 at every approval; the fund row is locked until the transaction ends.
+            app(DisbursementService::class)->assertCanBeApproved($this);
+        }
+
         $changes = [];
 
         if ($decision->is_self_approval) {

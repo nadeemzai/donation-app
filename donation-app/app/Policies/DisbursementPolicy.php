@@ -50,6 +50,15 @@ class DisbursementPolicy
         return $this->approve($user, $disbursement);
     }
 
+    /**
+     * Recording the payout posts to the fund ledger, so it needs ledger.create (Finance,
+     * Super Admin) — not the requesting right that field officers also have.
+     */
+    public function markPaid(User $user, Disbursement $disbursement): bool
+    {
+        return $user->can('ledger.create') && $disbursement->status === DisbursementStatus::Approved;
+    }
+
     /** The requester, or any approver, may withdraw a payout that is not yet paid. */
     public function withdraw(User $user, Disbursement $disbursement): bool
     {

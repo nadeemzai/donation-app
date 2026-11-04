@@ -180,6 +180,15 @@ class DisbursementResource extends Resource
                         ->placeholder('—'),
                     TextEntry::make('requester.name')->label('Requested by')->placeholder('—'),
                     TextEntry::make('requested_at')->label('Requested')->dateTime('d M Y H:i'),
+                    TextEntry::make('fund_available')->label('Available in fund')
+                        ->state(fn (Disbursement $record): string => Money::rupees(app(DisbursementService::class)->availableIn($record->fund)))
+                        ->helperText('Balance minus payouts approved and not yet paid.')
+                        ->visible(fn (Disbursement $record): bool => in_array($record->status, [DisbursementStatus::Requested, DisbursementStatus::Approved], true)),
+                    TextEntry::make('paid_at')->label('Paid')->dateTime('d M Y H:i')
+                        ->helperText(fn (Disbursement $record): ?string => $record->payer !== null ? 'by '.$record->payer->name : null)
+                        ->visible(fn (Disbursement $record): bool => $record->paid_at !== null),
+                    TextEntry::make('payment_reference')->label('Reference')->placeholder('—')
+                        ->visible(fn (Disbursement $record): bool => $record->paid_at !== null),
                     TextEntry::make('purpose')->label('What it is for')->columnSpanFull(),
                 ]),
             Section::make('Approvals')
