@@ -61,7 +61,7 @@
                         <label class="flex cursor-pointer items-start gap-3 rounded-2xl border p-4" :class="offering === '{{ $offering->id }}' ? 'border-brand-600 bg-brand-50' : 'border-ink-900/10'">
                             <input type="radio" name="offering_id" value="{{ $offering->id }}" x-model="offering" class="mt-1 text-brand-600" @disabled($left === 0)>
                             <span>
-                                <span class="block font-semibold">{{ $offering->animal->label() }}</span>
+                                <span class="block font-semibold">{{ __($offering->animal->label()) }}</span>
                                 <span class="block text-sm text-ink-700">{{ \App\Support\Money::rupees((string) $offering->price_per_share) }} {{ $offering->shares_per_animal > 1 ? __('per share (1 of :n)', ['n' => $offering->shares_per_animal]) : __('per animal') }}</span>
                                 @if ($left !== null)
                                     <span class="block text-xs {{ $left === 0 ? 'text-red-700' : 'text-ink-500' }}">{{ $left === 0 ? __('All booked') : trans_choice(':count share left|:count shares left', $left) }}</span>

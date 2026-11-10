@@ -21,7 +21,7 @@
             <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($projects as $project)
                     <a href="{{ route('projects.show', $project->slug) }}" class="group flex flex-col rounded-3xl bg-white p-6 shadow-sm ring-1 ring-ink-900/5 transition hover:shadow-lg">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">{{ $project->status->label() }}@if ($project->location) · {{ $project->location }}@endif</span>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">{{ __($project->status->label()) }}@if ($project->location) · {{ $project->location }}@endif</span>
                         <h2 class="mt-2 font-display text-xl font-semibold group-hover:text-brand-700">{{ $project->name }}</h2>
                         @if ($project->summary)
                             <p class="mt-2 flex-1 text-sm text-ink-700">{{ $project->summary }}</p>

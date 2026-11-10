@@ -13,6 +13,9 @@
     ]));
     $donateUrl = Route::has('donate') ? route('donate') : route('campaigns.index');
     $accountUrl = Route::has('donor.dashboard') ? route('donor.dashboard') : null;
+    // English / اردو switch: shows the other language, in its own script.
+    $otherLocale = app()->getLocale() === 'ur' ? 'en' : 'ur';
+    $otherLabel = $otherLocale === 'ur' ? 'اردو' : 'English';
 @endphp
 <header x-data="{ open: false }" class="sticky top-0 z-40 border-b border-ink-900/5 bg-white/95 backdrop-blur">
     <div class="mx-auto flex h-18 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -29,6 +32,10 @@
         </nav>
 
         <div class="flex items-center gap-2">
+            <a href="{{ route('locale.switch', $otherLocale) }}" lang="{{ $otherLocale }}" hreflang="{{ $otherLocale }}"
+               class="inline-flex rounded-full px-3 py-2 text-[15px] font-medium text-ink-700 ring-1 ring-ink-900/10 hover:text-brand-700"
+               @if ($otherLocale === 'ur') style="font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif; line-height: 1.4;" @endif
+               aria-label="{{ $otherLocale === 'ur' ? 'اردو میں دیکھیں' : 'View in English' }}">{{ $otherLabel }}</a>
             @if ($accountUrl)
                 <a href="{{ $accountUrl }}" class="hidden rounded-full px-4 py-2 text-[15px] font-medium text-ink-700 hover:text-brand-700 sm:inline-flex">{{ __('My donations') }}</a>
             @endif

@@ -30,7 +30,7 @@
             <p class="mt-1 font-display text-2xl font-bold">Rs {{ Money::format($total) }}</p>
         </div>
         <div class="rounded-2xl border border-ink-900/10 p-5">
-            <p class="text-sm text-ink-500">{{ __('This tax year (FY :label)', ['label' => $year->label()]) }}</p>
+            <p class="text-sm text-ink-500">{{ __('This tax year (FY :label)', ['label' => __($year->label())]) }}</p>
             <p class="mt-1 font-display text-2xl font-bold">Rs {{ Money::format($thisYear) }}</p>
         </div>
         <div class="rounded-2xl border border-ink-900/10 p-5">
@@ -75,13 +75,13 @@
                         <tr>
                             <td class="whitespace-nowrap px-4 py-3">{{ ($donation->paid_at ?? $donation->created_at)?->timezone('Asia/Karachi')->format('j M Y') }}</td>
                             <td class="whitespace-nowrap px-4 py-3 font-mono text-xs">{{ $donation->donation_no }}</td>
-                            <td class="px-4 py-3">{{ $donation->campaign?->title ?? $donation->fund->name }}<span class="block text-xs text-ink-500">{{ $donation->payment_method->label() }}</span></td>
+                            <td class="px-4 py-3">{{ $donation->campaign?->title ?? $donation->fund->name }}<span class="block text-xs text-ink-500">{{ __($donation->payment_method->label()) }}</span></td>
                             <td class="whitespace-nowrap px-4 py-3 text-right font-semibold">Rs {{ Money::format((string) $donation->amount) }}
                                 @if (bccomp((string) $donation->refunded_amount, '0', 2) > 0)
                                     <span class="block text-xs font-normal text-ink-500">{{ __('Rs :amount refunded', ['amount' => Money::format((string) $donation->refunded_amount)]) }}</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $badge($donation->status) }}">{{ $donation->status->label() }}</span></td>
+                            <td class="px-4 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $badge($donation->status) }}">{{ __($donation->status->label()) }}</span></td>
                             <td class="whitespace-nowrap px-4 py-3 text-right">
                                 @if ($donation->receipt && ! $donation->receipt->isVoid())
                                     <a href="{{ route('donor.receipts.download', $donation->receipt) }}" class="font-medium text-brand-700 underline">{{ __('Receipt') }}</a>

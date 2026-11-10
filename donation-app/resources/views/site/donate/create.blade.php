@@ -111,7 +111,7 @@
 
     @if ($booking)
         <div class="mt-6 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-800">
-            <p class="font-semibold">{{ __('Qurbani booking :no — :shares × :animal, :total', ['no' => $booking->booking_no, 'shares' => $booking->shares, 'animal' => $booking->offering->animal->label(), 'total' => \App\Support\Money::rupees((string) $booking->total_amount)]) }}</p>
+            <p class="font-semibold">{{ __('Qurbani booking :no — :shares × :animal, :total', ['no' => $booking->booking_no, 'shares' => $booking->shares, 'animal' => __($booking->offering->animal->label()), 'total' => \App\Support\Money::rupees((string) $booking->total_amount)]) }}</p>
             <p class="mt-1">{{ __('On behalf of: :names', ['names' => implode(', ', $booking->names())]) }}</p>
             <p class="mt-1">{{ __('Your shares are held while you pay. Choose how to pay below — JazakAllah khair.') }}</p>
         </div>
@@ -278,7 +278,7 @@
                            :class="method === '{{ $m->value }}' ? 'border-brand-500 bg-brand-50/50' : 'border-ink-900/10 hover:border-brand-200'">
                         <input type="radio" name="payment_method" value="{{ $m->value }}" x-model="method" class="mt-1 text-brand-600 focus:ring-brand-200">
                         <span>
-                            <span class="block font-semibold">{{ $m->label() }}</span>
+                            <span class="block font-semibold">{{ __($m->label()) }}</span>
                             <span class="block text-sm text-ink-500">{{ $methodHints[$m->value] ?? '' }}</span>
                         </span>
                     </label>

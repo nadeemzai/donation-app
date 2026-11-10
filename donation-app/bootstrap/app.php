@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Middleware\Api\PrepareApiRequest;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetSiteLocale;
 use App\Support\ApiResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -21,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [SecurityHeaders::class]);
+        $middleware->web(append: [SetSiteLocale::class, SecurityHeaders::class]);
         // Payment gateways post their results to /payments/* without our CSRF token.
         $middleware->validateCsrfTokens(except: ['payments/*']);
         $middleware->api(prepend: [PrepareApiRequest::class], append: [SecurityHeaders::class]);

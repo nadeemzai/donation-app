@@ -41,7 +41,7 @@
                 <article class="rounded-2xl border border-ink-900/10 p-5" x-data="{ editing: false, cancelling: false }">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                            <p class="font-display text-lg font-semibold">Rs {{ Money::format((string) $plan->amount) }} · {{ $plan->frequency->label() }}</p>
+                            <p class="font-display text-lg font-semibold">Rs {{ Money::format((string) $plan->amount) }} · {{ __($plan->frequency->label()) }}</p>
                             <p class="text-sm text-ink-700">{{ $plan->causeName() }}</p>
                             <p class="mt-1 text-xs text-ink-500">
                                 @if ($plan->next_due_on)
@@ -50,7 +50,7 @@
                                 {{ trans_choice(':count payment received|:count payments received', $plan->paid_count, ['count' => $plan->paid_count]) }}
                             </p>
                         </div>
-                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $badge($plan->status) }}">{{ $plan->status->label() }}</span>
+                        <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $badge($plan->status) }}">{{ __($plan->status->label()) }}</span>
                     </div>
 
                     @if (isset($payLinks[$plan->id]))
