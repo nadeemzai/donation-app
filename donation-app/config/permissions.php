@@ -11,7 +11,7 @@ declare(strict_types=1);
 | (e.g. "donors.update"). Policies check those names. Change access here, in
 | code, and re-run the seeder — not by clicking in the admin panel.
 |
-| Levels: F = full · C = view/create/update · CE = C + export · A = view/approve · V = view · - = none
+| Levels: F = full · C = view/create/update · CE = C + export · A = view/approve · V = view · VE = view + export · - = none
 | super_admin bypasses every check (Gate::before), its column is informational.
 */
 
@@ -25,6 +25,7 @@ return [
         'CE' => ['view_any', 'view', 'create', 'update', 'export'],
         'A' => ['view_any', 'view', 'approve'],
         'V' => ['view_any', 'view'],
+        'VE' => ['view_any', 'view', 'export'],
         '-' => [],
     ],
 
@@ -44,7 +45,7 @@ return [
         'projects' => ['F', 'C', 'V', 'C', 'V', 'V', 'V'], // projects & milestones (Week 10); spend comes from disbursements
         'qurbani' => ['F', 'C', 'C', 'C', 'C', 'V', 'V'], // qurbani & inventory
         'ledger' => ['F', 'V', 'C', '-', '-', 'V', 'V'], // ledger & reconciliation
-        'reports' => ['F', 'V', 'V', 'V', 'V', 'V', 'V'], // reports & dashboard
+        'reports' => ['F', 'VE', 'VE', 'V', 'V', 'VE', 'VE'], // reports & dashboard (Week 11: managers, finance, trustees, auditors export)
         'cms' => ['F', 'C', '-', 'C', '-', '-', '-'],
         'audit_log' => ['V', 'V', '-', '-', '-', 'V', 'V'],
     ],
