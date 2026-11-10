@@ -8,6 +8,7 @@ use App\Models\Donation;
 use App\Models\Donor;
 use App\Models\ImpactUpdate;
 use App\Models\MessageTemplate;
+use App\Models\QurbaniBooking;
 use App\Models\Receipt;
 use App\Models\RecurringPlanPeriod;
 use App\Models\TaxCertificate;
@@ -137,6 +138,42 @@ class TemplateRenderer
             'update_title' => $update->title,
             'link' => route('projects.show', $project->slug).'#update-'.$update->id,
             'date' => $update->published_at?->format('d M Y'),
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
+     * Placeholder values for a Qurbani update (allocated / done / distributed).
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForQurbani(QurbaniBooking $booking, bool $urdu = false): array
+    {
+        $booking->loadMissing(['donor', 'offering', 'season', 'shareRows.animal']);
+        $animals = $booking->shareRows->pluck('animal')->filter()->unique('id')->values();
+        $days = $animals->pluck('slaughter_day')->filter()->unique()->sort()->values();
+        $slaughterDays = $booking->season->slaughterDays();
+
+        $dayText = $days->map(function (int $day) use ($slaughterDays, $urdu): string {
+            $date = $slaughterDays[$day] ?? null;
+
+            return $urdu
+                ? 'عید کا '.match ($day) {
+                    1 => 'پہلا',
+                    2 => 'دوسرا',
+                    default => 'تیسرا',
+                }.' دن'.($date !== null ? ' ('.$date->format('d-m-Y').')' : '')
+                : 'Eid day '.$day.($date !== null ? ' ('.$date->format('D d M').')' : '');
+        })->implode(', ');
+
+        return [
+            'donor_name' => $booking->donor->name,
+            'booking_no' => $booking->booking_no,
+            'animal' => $urdu ? __($booking->offering->animal->label(), [], 'ur') : $booking->offering->animal->label(),
+            'tags' => $animals->pluck('tag_no')->implode(', '),
+            'qurbani_day' => $dayText,
+            'share_names' => implode(', ', $booking->names()),
+            'amount' => Money::rupees((string) $booking->total_amount),
             'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
         ];
     }

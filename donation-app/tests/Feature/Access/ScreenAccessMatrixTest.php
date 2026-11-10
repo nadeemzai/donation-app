@@ -51,6 +51,7 @@ function adminScreens(): array
         'qurbani seasons' => ['/admin/qurbani-seasons', 'qurbani', 'view_any'],
         'qurbani seasons create' => ['/admin/qurbani-seasons/create', 'qurbani', 'create'],
         'qurbani bookings' => ['/admin/qurbani-bookings', 'qurbani', 'view_any'],
+        'qurbani animals' => ['/admin/qurbani-animals', 'qurbani', 'view_any'],
     ];
 }
 
