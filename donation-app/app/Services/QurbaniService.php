@@ -60,7 +60,7 @@ class QurbaniService
             }
 
             if (! $locked->is_active) {
-                throw new DomainException(__(':animal is not available this season.', ['animal' => $locked->animal->label()]));
+                throw new DomainException(__(':animal is not available this season.', ['animal' => __($locked->animal->label())]));
             }
 
             if (! $season->allow_overseas && ! Phone::isPakistaniMobile($donor->phone)) {
@@ -71,8 +71,8 @@ class QurbaniService
 
             if ($left !== null && $shares > $left) {
                 throw new DomainException($left === 0
-                    ? __('All :animal shares are booked. Please choose another animal.', ['animal' => $locked->animal->label()])
-                    : __('Only :left :animal shares are left.', ['left' => $left, 'animal' => $locked->animal->label()]));
+                    ? __('All :animal shares are booked. Please choose another animal.', ['animal' => __($locked->animal->label())])
+                    : __('Only :left :animal shares are left.', ['left' => $left, 'animal' => __($locked->animal->label())]));
             }
 
             $booking = new QurbaniBooking([

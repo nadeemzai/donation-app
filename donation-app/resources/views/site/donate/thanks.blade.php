@@ -33,7 +33,7 @@
             @endif
         </p>
     @else
-        <h1 class="mt-6 font-display text-3xl font-bold">{{ __('This donation is :status', ['status' => strtolower($donation->status->label())]) }}</h1>
+        <h1 class="mt-6 font-display text-3xl font-bold">{{ __('This donation is :status', ['status' => strtolower(__($donation->status->label()))]) }}</h1>
         <p class="mt-3 text-lg text-ink-700">{{ __('If you think this is a mistake, please contact us with your donation number.') }}</p>
     @endif
 
@@ -41,7 +41,7 @@
         <div class="flex justify-between py-3"><dt class="text-ink-500">{{ __('Donation number') }}</dt><dd class="font-mono font-semibold">{{ $donation->donation_no }}</dd></div>
         <div class="flex justify-between py-3"><dt class="text-ink-500">{{ __('Amount') }}</dt><dd class="font-semibold">Rs {{ Money::format((string) $donation->amount) }}</dd></div>
         <div class="flex justify-between py-3"><dt class="text-ink-500">{{ __('For') }}</dt><dd class="font-semibold">{{ $donation->campaign?->title ?? $donation->fund->name }}</dd></div>
-        <div class="flex justify-between py-3"><dt class="text-ink-500">{{ __('Paid by') }}</dt><dd class="font-semibold">{{ $donation->payment_method->label() }}</dd></div>
+        <div class="flex justify-between py-3"><dt class="text-ink-500">{{ __('Paid by') }}</dt><dd class="font-semibold">{{ __($donation->payment_method->label()) }}</dd></div>
     </dl>
 
     <p class="mt-6 text-sm text-ink-500">{{ __('Please keep your donation number. Quote it if you contact us.') }}</p>

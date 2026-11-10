@@ -11,11 +11,13 @@ use App\Http\Controllers\Site\DonorPledgeController;
 use App\Http\Controllers\Site\DonorPortalController;
 use App\Http\Controllers\Site\FundController;
 use App\Http\Controllers\Site\HomeController;
+use App\Http\Controllers\Site\LocaleController;
 use App\Http\Controllers\Site\PageController;
 use App\Http\Controllers\Site\ProjectController;
 use App\Http\Controllers\Site\QurbaniController;
 use App\Http\Controllers\Site\SeoController;
 use App\Http\Controllers\Site\ZakatController;
+use App\Http\Middleware\SetSiteLocale;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +27,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', HomeController::class)->name('home');
+Route::get('lang/{locale}', LocaleController::class)->whereIn('locale', SetSiteLocale::SUPPORTED)->name('locale.switch');
 Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
 Route::get('campaigns/{campaign:slug}', [CampaignController::class, 'show'])->name('campaigns.show');
 Route::get('qurbani', [QurbaniController::class, 'show'])->name('qurbani');

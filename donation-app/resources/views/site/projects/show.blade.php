@@ -18,7 +18,7 @@
 
         <div class="mt-6 grid gap-10 lg:grid-cols-3">
             <div class="lg:col-span-2">
-                <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">{{ $project->status->label() }}@if ($project->location) · {{ $project->location }}@endif</span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">{{ __($project->status->label()) }}@if ($project->location) · {{ $project->location }}@endif</span>
                 <h1 class="mt-2 font-display text-3xl font-bold leading-tight sm:text-4xl">{{ $project->name }}</h1>
                 @if ($project->summary)
                     <p class="mt-3 text-lg text-ink-700">{{ $project->summary }}</p>
@@ -68,7 +68,7 @@
                                     <span @class(['mt-1 h-3 w-3 shrink-0 rounded-full', 'bg-brand-600' => $milestone->status === \App\Enums\MilestoneStatus::Done, 'bg-amber-400' => $milestone->status === \App\Enums\MilestoneStatus::InProgress, 'bg-ink-900/15' => $milestone->status === \App\Enums\MilestoneStatus::Pending]) aria-hidden="true"></span>
                                     <span>
                                         <span class="font-medium">{{ $milestone->title }}</span>
-                                        <span class="block text-xs text-ink-500">{{ $milestone->status->label() }}@if ($milestone->completed_at) · {{ $milestone->completed_at->format('d M Y') }}@elseif ($milestone->due_on) · {{ __('due :date', ['date' => $milestone->due_on->format('d M Y')]) }}@endif</span>
+                                        <span class="block text-xs text-ink-500">{{ __($milestone->status->label()) }}@if ($milestone->completed_at) · {{ $milestone->completed_at->format('d M Y') }}@elseif ($milestone->due_on) · {{ __('due :date', ['date' => $milestone->due_on->format('d M Y')]) }}@endif</span>
                                     </span>
                                 </li>
                             @endforeach

@@ -56,7 +56,7 @@
                 <label for="frequency" class="block text-sm font-medium">{{ __('How often') }}</label>
                 <select id="frequency" name="frequency" class="mt-1 w-full rounded-xl border-ink-900/15 px-4 py-3">
                     @foreach (PledgeFrequency::cases() as $f)
-                        <option value="{{ $f->value }}" @selected(old('frequency', 'monthly') === $f->value)>{{ $f->label() }}</option>
+                        <option value="{{ $f->value }}" @selected(old('frequency', 'monthly') === $f->value)>{{ __($f->label()) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -74,7 +74,7 @@
                 <select id="payment_method" name="payment_method" class="mt-1 w-full rounded-xl border-ink-900/15 px-4 py-3">
                     <option value="">—</option>
                     @foreach ($methods as $m)
-                        <option value="{{ $m->value }}" @selected(old('payment_method') === $m->value)>{{ $m->label() }}</option>
+                        <option value="{{ $m->value }}" @selected(old('payment_method') === $m->value)>{{ __($m->label()) }}</option>
                     @endforeach
                 </select>
             </div>

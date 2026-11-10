@@ -46,6 +46,25 @@
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
     @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @if (app()->getLocale() === 'ur')
+        {{-- Urdu (Week 11): Nastaliq font and right-to-left fixes. Plain CSS — no rebuild needed. --}}
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=noto-nastaliq-urdu:400,700&display=swap" rel="stylesheet">
+        <style>
+            html[lang="ur"] body, html[lang="ur"] .font-sans, html[lang="ur"] .font-display, html[lang="ur"] button, html[lang="ur"] input, html[lang="ur"] select, html[lang="ur"] textarea {
+                font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Noto Naskh Arabic', serif;
+            }
+            html[lang="ur"] body { line-height: 2; }
+            html[lang="ur"] h1, html[lang="ur"] h2, html[lang="ur"] h3 { line-height: 1.9; }
+            html[lang="ur"] .uppercase { text-transform: none; letter-spacing: 0; }
+            /* numbers, amounts, phone numbers and codes stay left-to-right */
+            html[lang="ur"] input[type="tel"], html[lang="ur"] input[type="email"], html[lang="ur"] input[inputmode="numeric"] { direction: ltr; text-align: right; }
+            [dir="rtl"] .text-left { text-align: right; }
+            [dir="rtl"] .text-right { text-align: left; }
+            [dir="rtl"] .border-l-2 { border-left-width: 0; border-right-width: 2px; }
+            [dir="rtl"] .pl-6 { padding-left: 0; padding-right: 1.5rem; }
+        </style>
+    @endif
     @livewireStyles
 </head>
 <body class="min-h-screen bg-white font-sans text-ink-900 antialiased">
