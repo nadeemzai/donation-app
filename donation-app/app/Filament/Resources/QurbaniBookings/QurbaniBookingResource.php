@@ -83,7 +83,10 @@ class QurbaniBookingResource extends Resource
                         ->schema([
                             TextEntry::make('position')->label('Share')->state(fn (QurbaniShare $record): string => '#'.$record->position),
                             TextEntry::make('name'),
-                            TextEntry::make('animal.tag_no')->label('Animal')->placeholder('Not allocated yet'),
+                            TextEntry::make('animal.tag_no')->label('Animal')->placeholder('Not allocated yet')
+                                ->state(fn (QurbaniShare $record): ?string => $record->animal !== null
+                                    ? $record->animal->tag_no.' · '.$record->animal->status->label().($record->animal->slaughter_day !== null ? ' · Eid day '.$record->animal->slaughter_day : '')
+                                    : null),
                         ]),
                 ]),
         ]);

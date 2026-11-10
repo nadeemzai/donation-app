@@ -49,6 +49,12 @@ class MessageTemplate extends Model
 
     public const IMPACT_UPDATE = 'impact_update';
 
+    public const QURBANI_ALLOCATED = 'qurbani_allocated';
+
+    public const QURBANI_DONE = 'qurbani_done';
+
+    public const QURBANI_DISTRIBUTED = 'qurbani_distributed';
+
     /** Placeholder => what it becomes (shown to staff on the edit screen). */
     public const PLACEHOLDERS = [
         'donor_name' => 'Donor name',
@@ -67,6 +73,11 @@ class MessageTemplate extends Model
         'project' => 'Project name (impact update)',
         'update_title' => 'Title of the update (impact update)',
         'link' => 'Link to the update on the website (impact update)',
+        'booking_no' => 'Qurbani booking number',
+        'animal' => 'Qurbani animal, e.g. Cow',
+        'tags' => 'Tag number(s) of the Qurbani animal(s)',
+        'qurbani_day' => 'Qurbani day, e.g. "Eid day 1 (Mon 17 May)"',
+        'share_names' => 'Names the Qurbani is offered on behalf of',
     ];
 
     /** Fields that contain placeholders. */
