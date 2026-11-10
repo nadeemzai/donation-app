@@ -29,6 +29,7 @@ function adminScreens(): array
         'fund ledger' => ['/admin/fund-ledger', 'ledger', 'view_any'],
         'settlements' => ['/admin/settlements', 'ledger', 'view_any'],
         'settlements import' => ['/admin/settlements/create', 'ledger', 'create'],
+        'reports' => ['/admin/reports', 'reports', 'view_any'],
         'payments' => ['/admin/payments', 'donations', 'view_any'],
         'proof queue' => ['/admin/proof-queue', 'proof_verification', 'view_any'],
         'message templates' => ['/admin/message-templates', 'cms', 'view_any'],

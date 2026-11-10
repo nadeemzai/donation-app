@@ -89,7 +89,7 @@
 
 ## 3. Software requirements
 ### 3.1 Roles & permissions
-F = full · C = create/edit · CE = create/edit + export · A = approve · V = view · - = none. Donors use a separate guard and see only their own data.
+F = full · C = create/edit · CE = create/edit + export · A = approve · V = view · VE = view + export · - = none. Donors use a separate guard and see only their own data.
 
 | Area | Super Admin | Manager | Finance | Campaign Mgr | Field Officer | Trustee | Auditor |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -104,7 +104,7 @@ F = full · C = create/edit · CE = create/edit + export · A = approve · V = v
 | Disbursements | F | A | C | - | C | A | V |
 | Qurbani & inventory | F | C | C | C | C | V | V |
 | Ledger & reconciliation | F | V | C | - | - | V | V |
-| Reports & dashboard | F | V | V | V | V | V | V |
+| Reports & dashboard | F | VE | VE | V | V | VE | VE |
 | CMS content | F | C | - | C | - | - | - |
 | Audit log | V | V | - | - | - | V | V |
 
