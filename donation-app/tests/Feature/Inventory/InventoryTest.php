@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DisbursementStatus;
+use App\Enums\InventoryCategory;
 use App\Enums\Role;
 use App\Enums\StockDirection;
 use App\Filament\Resources\Disbursements\Pages\CreateDisbursement;
@@ -87,6 +88,20 @@ describe('goods received', function () {
             ->and(fn () => stock()->receive([]))->toThrow(DomainException::class, 'at least one')
             ->and(InKindDonation::query()->count())->toBe(0)
             ->and((string) $item->refresh()->quantity_on_hand)->toBe('0.00');
+    });
+
+    it('takes used books and toys like any other goods', function () {
+        $books = InventoryItem::factory()->create(['name' => 'Story books (used)', 'category' => 'books', 'unit' => 'piece', 'unit_value' => '150']);
+        $toys = InventoryItem::factory()->create(['name' => 'Baby toys', 'category' => 'toys', 'unit' => 'piece', 'unit_value' => '300']);
+
+        $received = stock()->receive([
+            ['item_id' => $books->id, 'quantity' => '40'],
+            ['item_id' => $toys->id, 'quantity' => '12', 'unit_value' => '200'],
+        ], donorName: 'Neighbourhood book drive');
+
+        expect($books->refresh()->category)->toBe(InventoryCategory::Books)
+            ->and($toys->refresh()->category->label())->toBe('Toys and baby items')
+            ->and((string) $received->total_value)->toBe('8400.00'); // 40 × 150 + 12 × 200
     });
 
     it('records goods from the screen', function () {
