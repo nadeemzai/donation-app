@@ -56,6 +56,10 @@ class EditDisbursement extends EditRecord
             unset($data['fund_id']); // a project is paid from its own fund
         }
 
+        if ($record instanceof Disbursement && $record->goods()->exists()) {
+            unset($data['amount'], $data['method']); // goods from stock set the value
+        }
+
         if (blank($data['payee_account'] ?? null)) {
             unset($data['payee_account']);
         }

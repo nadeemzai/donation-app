@@ -50,6 +50,7 @@ class ManageNumberingSettings extends BaseSettingsPage
                     $prefix('application_prefix', 'Application'),
                     $prefix('project_prefix', 'Project'),
                     $prefix('qurbani_booking_prefix', 'Qurbani booking'),
+                    $prefix('in_kind_prefix', 'Goods received'),
                     TextInput::make('pad_length')
                         ->label('Number length')
                         ->helperText('Digits after the year, e.g. 6 → 000001')

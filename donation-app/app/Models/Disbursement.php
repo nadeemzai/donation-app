@@ -18,9 +18,11 @@ use DomainException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Carbon;
 
@@ -65,6 +67,7 @@ use Illuminate\Support\Carbon;
  * @property-read Application|null $application
  * @property-read Beneficiary|null $beneficiary
  * @property-read Project|null $project
+ * @property-read Collection<int, DisbursementItem> $goods
  * @property-read User|null $requester
  * @property-read User|null $payer
  */
@@ -294,6 +297,16 @@ class Disbursement extends Model implements Approvable
     public function application(): BelongsTo
     {
         return $this->belongsTo(Application::class);
+    }
+
+    /**
+     * Goods handed over by an in-kind disbursement (Week 11).
+     *
+     * @return HasMany<DisbursementItem, $this>
+     */
+    public function goods(): HasMany
+    {
+        return $this->hasMany(DisbursementItem::class);
     }
 
     /**

@@ -13,7 +13,9 @@ use App\Exceptions\InsufficientFundBalance;
 use App\Models\Application;
 use App\Models\Approval;
 use App\Models\Disbursement;
+use App\Models\DisbursementItem;
 use App\Models\Fund;
+use App\Models\InventoryItem;
 use App\Models\Project;
 use App\Models\User;
 use App\Support\Money;
@@ -38,7 +40,8 @@ use InvalidArgumentException;
  *   BR-07  a fund never goes below zero: at approval the amount must fit in the fund's
  *          balance minus payouts already approved and not yet paid; the ledger debit at
  *          payment re-checks the real balance under a lock
- * In-kind payouts (goods) post no money debit; stock-out comes with inventory (Week 11).
+ * In-kind payouts post no money debit. With goods from our stock (Week 11) their value is
+ * quantity × value per unit, approval checks the stock left, and payment takes it out of stock.
  */
 class DisbursementService
 {
@@ -51,7 +54,12 @@ class DisbursementService
     public function request(array $data, ?User $by = null): Disbursement
     {
         return DB::transaction(function () use ($data, $by): Disbursement {
-            $amount = $this->amount($data['amount'] ?? null);
+            $method = $data['method'] ?? null;
+            $method = $method instanceof PayoutMethod ? $method : PayoutMethod::tryFrom(is_string($method) ? $method : '');
+
+            // In kind from our stock (Week 11): the goods set the amount (quantity × value per unit).
+            $goods = $method === PayoutMethod::InKind ? $this->goodsLines($data['goods'] ?? []) : [];
+            $amount = $goods !== [] ? $this->goodsValue($goods) : $this->amount($data['amount'] ?? null);
 
             if (filled($data['project_id'] ?? null)) {
                 [$applicationId, $projectId, $fund, $payee] = $this->forProject((int) $data['project_id'], $data['fund_id'] ?? null, $amount);
@@ -59,20 +67,27 @@ class DisbursementService
                 [$applicationId, $projectId, $fund, $payee] = $this->forApplication($data['application_id'] ?? null, $data['fund_id'] ?? null, $amount);
             }
 
-            $method = $data['method'] ?? null;
-
             $disbursement = new Disbursement([
                 'application_id' => $applicationId,
                 'project_id' => $projectId,
                 'fund_id' => $fund->id,
                 'amount' => $amount,
-                'method' => $method instanceof PayoutMethod ? $method : PayoutMethod::tryFrom(is_string($method) ? $method : ''),
+                'method' => $method,
                 'payee_name' => filled($data['payee_name'] ?? null) ? (string) $data['payee_name'] : $payee,
                 'payee_account' => filled($data['payee_account'] ?? null) ? trim((string) $data['payee_account']) : null,
                 'purpose' => (string) ($data['purpose'] ?? ''),
                 'requested_by' => $by?->id,
             ]);
             $disbursement->save();
+
+            foreach ($goods as $line) {
+                DisbursementItem::query()->create([
+                    'disbursement_id' => $disbursement->id,
+                    'item_id' => $line['item']->id,
+                    'quantity' => $line['quantity'],
+                    'unit_value' => (string) $line['item']->unit_value,
+                ]);
+            }
 
             activity('audit')->performedOn($disbursement)->causedBy($by)->event('requested')
                 ->withProperties(['amount' => $amount, 'fund_id' => $fund->id, 'project_id' => $projectId, 'required_approvals' => $disbursement->required_approvals])
@@ -211,6 +226,20 @@ class DisbursementService
         }
 
         if ($disbursement->method === PayoutMethod::InKind) {
+            // Goods from stock: enough must be left after other approved hand-overs.
+            foreach ($disbursement->goods()->get() as $line) {
+                $item = InventoryItem::query()->lockForUpdate()->findOrFail($line->item_id);
+
+                if (bccomp((string) $line->quantity, $item->available(), 2) > 0) {
+                    throw new DomainException(sprintf(
+                        'Not enough %s: %s available after hand-overs already approved, %s needed.',
+                        $item->name,
+                        $item->quantityLabel($item->available()),
+                        $item->quantityLabel((string) $line->quantity),
+                    ));
+                }
+            }
+
             return;
         }
 
@@ -255,7 +284,12 @@ class DisbursementService
             $fund = Fund::withTrashed()->findOrFail($locked->fund_id);
             $this->assertZakatUse($fund, $locked->application, $locked->project_id);
 
-            if ($locked->method !== PayoutMethod::InKind) {
+            if ($locked->method === PayoutMethod::InKind) {
+                // Goods leave the store; a shortage stops the whole payment.
+                foreach ($locked->goods()->with('item')->get() as $line) {
+                    app(InventoryService::class)->stockOut($line->item, (string) $line->quantity, $locked, "Disbursement {$locked->disbursement_no} to {$locked->payee_name}", $by);
+                }
+            } else {
                 try {
                     app(FundLedgerService::class)->debit(
                         $fund,
@@ -331,6 +365,65 @@ class DisbursementService
         if (! $beneficiary->is_zakat_eligible || $beneficiary->zakat_decided_at === null) {
             throw new DomainException("{$fund->name} is a Zakat fund and {$beneficiary->name} has not been decided Zakat-eligible (BR-02).");
         }
+    }
+
+    /**
+     * Goods lines of an in-kind request: active items with a value per unit, quantities more
+     * than zero, and enough in stock (after approved hand-overs) right now.
+     *
+     * @return list<array{item: InventoryItem, quantity: string}>
+     */
+    private function goodsLines(mixed $goods): array
+    {
+        $lines = [];
+
+        foreach (is_array($goods) ? $goods : [] as $row) {
+            if (! is_array($row) || blank($row['item_id'] ?? null)) {
+                continue;
+            }
+
+            $item = InventoryItem::query()->find($row['item_id']);
+
+            if ($item === null || ! $item->is_active) {
+                throw new DomainException('Choose items that are in use.');
+            }
+
+            if (isset($lines[$item->id])) {
+                throw new DomainException("{$item->name} is listed twice — put the total on one line.");
+            }
+
+            $quantity = trim(is_scalar($row['quantity'] ?? null) ? (string) $row['quantity'] : '');
+
+            if (preg_match('/^\d{1,9}(\.\d{1,2})?$/', $quantity) !== 1 || bccomp($quantity, '0', 2) <= 0) {
+                throw new DomainException("Enter how much {$item->name} to give.");
+            }
+
+            if (bccomp((string) $item->unit_value, '0', 2) <= 0) {
+                throw new DomainException("Set an estimated value per unit for {$item->name} first (Inventory → items).");
+            }
+
+            if (bccomp($quantity, $item->available(), 2) > 0) {
+                throw new DomainException("Only {$item->quantityLabel($item->available())} of {$item->name} is available.");
+            }
+
+            $lines[$item->id] = ['item' => $item, 'quantity' => bcadd($quantity, '0', 2)];
+        }
+
+        return array_values($lines);
+    }
+
+    /**
+     * @param  list<array{item: InventoryItem, quantity: string}>  $goods
+     */
+    private function goodsValue(array $goods): string
+    {
+        $total = '0.00';
+
+        foreach ($goods as $line) {
+            $total = bcadd($total, bcmul($line['quantity'], (string) $line['item']->unit_value, 2), 2);
+        }
+
+        return $total;
     }
 
     /**
