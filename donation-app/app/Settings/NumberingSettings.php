@@ -29,6 +29,8 @@ class NumberingSettings extends Settings
 
     public string $qurbani_booking_prefix;
 
+    public string $in_kind_prefix;
+
     public int $pad_length;
 
     public static function group(): string

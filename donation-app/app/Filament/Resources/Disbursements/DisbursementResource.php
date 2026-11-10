@@ -19,7 +19,9 @@ use App\Filament\Resources\Projects\ProjectResource;
 use App\Models\Application;
 use App\Models\Approval;
 use App\Models\Disbursement;
+use App\Models\DisbursementItem;
 use App\Models\Fund;
+use App\Models\InventoryItem;
 use App\Models\Project;
 use App\Models\User;
 use App\Services\ApprovalService;
@@ -29,6 +31,7 @@ use BackedEnum;
 use Closure;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -165,6 +168,8 @@ class DisbursementResource extends Resource
                         ->numeric()
                         ->minValue(1)
                         ->required()
+                        ->hidden(fn (Get $get, string $operation): bool => $operation === 'create' && self::hasGoods($get))
+                        ->disabled(fn (?Disbursement $record): bool => $record !== null && $record->goods()->exists())
                         ->helperText(function (Get $get): ?string {
                             if ($get('payout_for') === 'project') {
                                 $project = Project::query()->find($get('project_id'));
@@ -183,7 +188,29 @@ class DisbursementResource extends Resource
                         ->default(PayoutMethod::Cash)
                         ->required()
                         ->native(false)
+                        ->disabled(fn (?Disbursement $record): bool => $record !== null && $record->goods()->exists())
                         ->live(),
+                    Repeater::make('goods')
+                        ->label('Goods from our store')
+                        ->helperText('Value = quantity × the item’s value per unit. Leave empty for goods bought or given directly, and type the value instead.')
+                        ->visible(fn (Get $get, string $operation): bool => $operation === 'create' && self::method($get) === PayoutMethod::InKind)
+                        ->dehydrated(fn (Get $get, string $operation): bool => $operation === 'create' && self::method($get) === PayoutMethod::InKind)
+                        ->defaultItems(0)
+                        ->addActionLabel('Add item')
+                        ->columns(2)
+                        ->live()
+                        ->columnSpanFull()
+                        ->schema([
+                            Select::make('item_id')
+                                ->label('Item')
+                                ->required()
+                                ->native(false)
+                                ->searchable()
+                                ->distinct()
+                                ->options(fn (): array => InventoryItem::query()->where('is_active', true)->orderBy('name')->get()
+                                    ->mapWithKeys(fn (InventoryItem $i): array => [$i->id => $i->name.' · available '.$i->quantityLabel($i->available())])->all()),
+                            TextInput::make('quantity')->label('Quantity')->required()->numeric()->minValue(0.01),
+                        ]),
                     TextInput::make('payee_name')->label('Paid to')->required()->maxLength(120),
                     TextInput::make('payee_account')
                         ->label(fn (Get $get): string => self::method($get) === PayoutMethod::Wallet ? 'Wallet number' : 'Bank account / IBAN')
@@ -244,6 +271,19 @@ class DisbursementResource extends Resource
                     TextEntry::make('payment_reference')->label('Reference')->placeholder('—')
                         ->visible(fn (Disbursement $record): bool => $record->paid_at !== null),
                     TextEntry::make('purpose')->label('What it is for')->columnSpanFull(),
+                ]),
+            Section::make('Goods')
+                ->columnSpanFull()
+                ->visible(fn (Disbursement $record): bool => $record->goods->isNotEmpty())
+                ->schema([
+                    RepeatableEntry::make('goods')
+                        ->hiddenLabel()
+                        ->columns(3)
+                        ->schema([
+                            TextEntry::make('item.name')->label('Item'),
+                            TextEntry::make('quantity')->state(fn (DisbursementItem $record): string => $record->item->quantityLabel((string) $record->quantity)),
+                            TextEntry::make('value')->state(fn (DisbursementItem $record): string => Money::rupees($record->value())),
+                        ]),
                 ]),
             Section::make('Approvals')
                 ->columnSpanFull()
@@ -317,7 +357,7 @@ class DisbursementResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         /** @var Builder<Disbursement> $query */
-        $query = parent::getEloquentQuery()->with(['fund', 'application.beneficiary', 'project', 'requester', 'approvals']);
+        $query = parent::getEloquentQuery()->with(['fund', 'application.beneficiary', 'project', 'requester', 'approvals', 'goods.item']);
 
         $user = self::currentUser();
 
@@ -442,6 +482,18 @@ class DisbursementResource extends Resource
         $user = auth()->user();
 
         return $user instanceof User ? $user : null;
+    }
+
+    /** Goods lines chosen on the request form. */
+    private static function hasGoods(Get $get): bool
+    {
+        if (self::method($get) !== PayoutMethod::InKind) {
+            return false;
+        }
+
+        $goods = $get('goods');
+
+        return collect(is_array($goods) ? $goods : [])->contains(fn (mixed $row): bool => is_array($row) && filled($row['item_id'] ?? null));
     }
 
     private static function method(Get $get): ?PayoutMethod

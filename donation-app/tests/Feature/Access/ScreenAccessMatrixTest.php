@@ -52,6 +52,10 @@ function adminScreens(): array
         'qurbani seasons create' => ['/admin/qurbani-seasons/create', 'qurbani', 'create'],
         'qurbani bookings' => ['/admin/qurbani-bookings', 'qurbani', 'view_any'],
         'qurbani animals' => ['/admin/qurbani-animals', 'qurbani', 'view_any'],
+        'stock items' => ['/admin/inventory-items', 'qurbani', 'view_any'],
+        'stock items create' => ['/admin/inventory-items/create', 'qurbani', 'create'],
+        'goods received' => ['/admin/in-kind-donations', 'qurbani', 'view_any'],
+        'goods received create' => ['/admin/in-kind-donations/create', 'qurbani', 'create'],
     ];
 }
 
