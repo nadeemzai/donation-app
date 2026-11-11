@@ -23,7 +23,7 @@ Automated guards (they fail CI if a later change breaks them):
 | A10 | SSRF | ✅ | The server only calls fixed gateway / WhatsApp / mail hosts from settings; no user-supplied URLs are fetched. |
 
 ## Rate limits
-Web: donate / Qurbani 10/min, donor login codes 10/min, contact 5/min, payment returns & webhooks 60/min, pledges 10–20/min. API: 60/min per token/IP, login / OTP 5/min and 20/hour per IP, donate 10/min. Admin: Filament's login and 2FA throttles. WhatsApp sending: per-minute limit from Settings.
+Web: donate / Qurbani 10/min, donor login codes 10/min, contact 5/min, payment returns 60/min, JazzCash server callbacks 600/min (hash-checked), pledges 10–20/min. API: 60/min per token/IP, login / OTP 5/min and 20/hour per IP, donate 10/min. Admin: Filament's login and 2FA throttles. WhatsApp sending: per-minute limit from Settings.
 
 ## Decisions kept as they are
 - Only the Super Admin decides applications and Zakat eligibility (`beneficiaries.approve`). Managers can be given this later by changing one line in `config/permissions.php` and re-running the roles seeder.

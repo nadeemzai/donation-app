@@ -194,4 +194,17 @@ class CampaignResource extends Resource
             'edit' => EditCampaign::route('/{record}/edit'),
         ];
     }
+
+    /**
+     * Fund and cover image for every row in one go (the list shows both).
+     *
+     * @return Builder<Campaign>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        /** @var Builder<Campaign> $query */
+        $query = parent::getEloquentQuery()->with(['fund', 'media']);
+
+        return $query;
+    }
 }

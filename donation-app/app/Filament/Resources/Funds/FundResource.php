@@ -30,6 +30,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 /**
@@ -181,5 +182,25 @@ class FundResource extends Resource
             'create' => CreateFund::route('/create'),
             'edit' => EditFund::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * The list shows each fund's image and offers Delete only for unused funds: load the image
+     * and the "is it used?" answers with the rows instead of one query each per row.
+     *
+     * @return Builder<Fund>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        /** @var Builder<Fund> $query */
+        $query = parent::getEloquentQuery()
+            ->with('media')
+            ->withExists([
+                'campaigns as used_by_campaigns' => fn ($q) => $q->withTrashed(),
+                'donations as used_by_donations',
+                'ledgerEntries as used_by_ledger',
+            ]);
+
+        return $query;
     }
 }
