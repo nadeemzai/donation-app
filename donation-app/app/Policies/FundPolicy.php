@@ -39,10 +39,8 @@ class FundPolicy
     public function delete(User $user, Fund $fund): bool
     {
         return $user->can('funds.delete')
-            && ! $fund->campaigns()->withTrashed()->exists()
-            && ! $fund->donations()->exists()
-            && ! $fund->ledgerEntries()->exists()
-            && bccomp($fund->balance, '0', 2) === 0;
+            && bccomp($fund->balance, '0', 2) === 0
+            && $fund->isUnused();
     }
 
     public function deleteAny(User $user): bool

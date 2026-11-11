@@ -31,7 +31,7 @@ Route::get('lang/{locale}', LocaleController::class)->whereIn('locale', SetSiteL
 Route::get('campaigns', [CampaignController::class, 'index'])->name('campaigns.index');
 Route::get('campaigns/{campaign:slug}', [CampaignController::class, 'show'])->name('campaigns.show');
 Route::get('qurbani', [QurbaniController::class, 'show'])->name('qurbani');
-Route::post('qurbani', [QurbaniController::class, 'store'])->middleware('throttle:10,1')->name('qurbani.store');
+Route::post('qurbani', [QurbaniController::class, 'store'])->middleware('throttle:web-donate')->name('qurbani.store');
 Route::get('projects', [ProjectController::class, 'index'])->name('projects.index');
 Route::get('projects/{slug}', [ProjectController::class, 'show'])->where('slug', '[a-z0-9-]{1,170}')->name('projects.show');
 Route::get('ways-to-give', [FundController::class, 'index'])->name('funds.index');
@@ -43,7 +43,7 @@ Route::post('zakat', [ZakatController::class, 'calculate'])->middleware('throttl
 
 // Donate wizard (Week 6 Day 2). ?campaign={slug} or ?fund={code} preselects the cause.
 Route::get('donate', [DonateController::class, 'create'])->name('donate');
-Route::post('donate', [DonateController::class, 'store'])->middleware('throttle:10,1')->name('donate.store');
+Route::post('donate', [DonateController::class, 'store'])->middleware('throttle:web-donate')->name('donate.store');
 Route::get('donate/thank-you/{number}', [DonateController::class, 'thanks'])
     ->where('number', '[A-Za-z0-9-]{1,30}')
     ->middleware('signed')
@@ -82,14 +82,19 @@ Route::prefix('my-donations')->name('donor.')->group(function (): void {
 | CSRF is off for payments/* (bootstrap/app.php): gateways post here. Every request
 | is stored and verified before it can change anything.
 */
-Route::prefix('payments')->name('payments.')->middleware('throttle:60,1')->group(function (): void {
-    Route::match(['get', 'post'], 'jazzcash/return', [GatewayReturnController::class, 'jazzcashReturn'])->name('jazzcash.return');
-    Route::post('jazzcash/notify', [GatewayReturnController::class, 'jazzcashNotify'])->name('jazzcash.notify');
-    Route::match(['get', 'post'], 'easypaisa/return', [GatewayReturnController::class, 'easypaisaReturn'])->name('easypaisa.return');
-    Route::match(['get', 'post'], 'easypaisa/done', [GatewayReturnController::class, 'easypaisaDone'])->name('easypaisa.done');
-    Route::get('result/{reference}', [GatewayReturnController::class, 'result'])
-        ->where('reference', '[A-Za-z0-9]{1,30}')
-        ->name('result');
+Route::prefix('payments')->name('payments.')->group(function (): void {
+    // Donors' browsers coming back from the gateway: 60 a minute per IP.
+    Route::middleware('throttle:gateway-return')->group(function (): void {
+        Route::match(['get', 'post'], 'jazzcash/return', [GatewayReturnController::class, 'jazzcashReturn'])->name('jazzcash.return');
+        Route::match(['get', 'post'], 'easypaisa/return', [GatewayReturnController::class, 'easypaisaReturn'])->name('easypaisa.return');
+        Route::match(['get', 'post'], 'easypaisa/done', [GatewayReturnController::class, 'easypaisaDone'])->name('easypaisa.done');
+        Route::get('result/{reference}', [GatewayReturnController::class, 'result'])
+            ->where('reference', '[A-Za-z0-9]{1,30}')
+            ->name('result');
+    });
+
+    // JazzCash's servers: many callbacks from few IPs at a peak — a higher limit (hash-checked).
+    Route::post('jazzcash/notify', [GatewayReturnController::class, 'jazzcashNotify'])->middleware('throttle:gateway-callback')->name('jazzcash.notify');
 });
 
 /*

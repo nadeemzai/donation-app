@@ -17,6 +17,10 @@ return [
         'enforce' => env('APP_ENV') !== 'local' || (bool) env('MFA_ENFORCE', true),
     ],
 
+    // Load testing (Week 12 Day 2): requests from these IPs skip the rate limits so k6 can push
+    // the donate and callback paths. Comma-separated, e.g. "203.0.113.7". IGNORED in production.
+    'load_test_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('LOAD_TEST_IPS', ''))))),
+
     // First-run defaults for NotificationSettings (database/settings). After
     // that, values are managed in Admin → Settings → Notifications.
     'green_api' => [

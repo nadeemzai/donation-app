@@ -84,6 +84,19 @@ class Fund extends Model implements HasMedia
      * The uploaded photo, or the built-in illustration for the fund type
      * (public/images/funds/{type}.svg) until staff upload one.
      */
+    /**
+     * Never had a campaign (even archived), a donation or a ledger line. Uses the answers the
+     * fund list loads with the rows (FundResource::getEloquentQuery) when present.
+     */
+    public function isUnused(): bool
+    {
+        $loaded = fn (string $key): ?bool => array_key_exists($key, $this->getAttributes()) ? (bool) $this->getAttribute($key) : null;
+
+        return ! ($loaded('used_by_campaigns') ?? $this->campaigns()->withTrashed()->exists())
+            && ! ($loaded('used_by_donations') ?? $this->donations()->exists())
+            && ! ($loaded('used_by_ledger') ?? $this->ledgerEntries()->exists());
+    }
+
     public function imageUrl(): string
     {
         $uploaded = $this->getFirstMediaUrl(self::IMAGE);

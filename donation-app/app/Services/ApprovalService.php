@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Settings\ApprovalSettings;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -58,7 +59,7 @@ class ApprovalService
             return null;
         }
 
-        $approved = $this->decisionsOn($item)->where('decision', ApprovalDecision::Approved->value)->count();
+        $approved = $this->decisions($item)->filter(fn (Approval $a): bool => $a->decision === ApprovalDecision::Approved)->count();
 
         return $approved < $item->requiredApprovals() ? $approved + 1 : null;
     }
@@ -76,7 +77,7 @@ class ApprovalService
             return 'You cannot approve this kind of request.';
         }
 
-        if ($this->decisionsOn($item)->where('approver_id', $user->id)->exists()) {
+        if ($this->decisions($item)->contains(fn (Approval $a): bool => (int) $a->approver_id === (int) $user->id)) {
             return 'You have already decided on this request — another approver is needed.';
         }
 
@@ -118,6 +119,24 @@ class ApprovalService
             ->orderBy('level');
     }
 
+    /**
+     * The decisions, from the eager-loaded relation when a list already loaded it (no query per
+     * row), otherwise fresh from the database.
+     *
+     * @return Collection<int, Approval>
+     */
+    private function decisions(Approvable&Model $item): Collection
+    {
+        if ($item->relationLoaded('approvals')) {
+            /** @var Collection<int, Approval> $loaded */
+            $loaded = $item->getRelation('approvals');
+
+            return $loaded;
+        }
+
+        return $this->decisionsOn($item)->get();
+    }
+
     private function maySelfApprove(Approvable $item, User $user): bool
     {
         return $item->allowsSelfApproval() && $user->hasRole(Role::SuperAdmin->value);
@@ -125,6 +144,8 @@ class ApprovalService
 
     private function decide(Approvable&Model $item, User $by, ApprovalDecision $decision, ?string $comment): Approval
     {
+        $item->unsetRelation('approvals'); // a decision is being added: any loaded copy goes stale
+
         $approval = DB::transaction(function () use ($item, $by, $decision, $comment): Approval {
             /** @var Approvable&Model $locked */
             $locked = $item->newQuery()->lockForUpdate()->findOrFail($item->getKey());

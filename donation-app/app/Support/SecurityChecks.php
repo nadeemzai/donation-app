@@ -85,6 +85,15 @@ final class SecurityChecks
         $add($ok(! str_starts_with((string) config('filesystems.disks.local.root'), public_path())), 'Private files are outside the web root', (string) config('filesystems.disks.local.root'));
         $add(is_link(public_path('storage')) ? self::PASS : self::WARN, 'public/storage link exists', 'php artisan storage:link (public images only)');
 
+        // Speed (Week 12 Day 2) — warnings: the site works without them, just slower.
+        $add(app()->configurationIsCached() ? self::PASS : self::WARN, 'Config is cached', 'php artisan optimize (on every deploy)');
+        $add(app()->routesAreCached() ? self::PASS : self::WARN, 'Routes are cached', 'php artisan optimize');
+        $add(app()->eventsAreCached() ? self::PASS : self::WARN, 'Events are cached', 'php artisan optimize');
+        $add((bool) config('settings.cache.enabled') ? self::PASS : self::WARN, 'Settings are cached', 'SETTINGS_CACHE_ENABLED=true');
+        $add(function_exists('opcache_get_status') && is_array(@opcache_get_status(false)) ? self::PASS : self::WARN, 'PHP OPcache is on', 'opcache.enable=1 in php.ini (checked for the CLI here; check PHP-FPM too)');
+        $add(config('cache.default') === 'redis' ? self::PASS : self::WARN, 'Cache uses Redis', 'CACHE_STORE=redis');
+        $add(config('donation.load_test_ips') === [] ? self::PASS : self::WARN, 'No load-test IPs set', 'LOAD_TEST_IPS is ignored in production, but remove it');
+
         return $checks;
     }
 
