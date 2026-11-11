@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [SetSiteLocale::class, SecurityHeaders::class]);
+        // Only answer for our own domain (APP_URL and its subdomains): a forged Host header can't
+        // put another site into signed links, receipts or e-mails. Off locally and in tests.
+        $middleware->trustHosts();
         // Payment gateways post their results to /payments/* without our CSRF token.
         $middleware->validateCsrfTokens(except: ['payments/*']);
         $middleware->api(prepend: [PrepareApiRequest::class], append: [SecurityHeaders::class]);

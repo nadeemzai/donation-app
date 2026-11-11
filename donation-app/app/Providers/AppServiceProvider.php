@@ -17,6 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
@@ -42,6 +43,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(fn ($user, string $ability) => $user instanceof User
             && str_contains($ability, '.')
             && $user->hasRole(Role::SuperAdmin->value) ? true : null);
+
+        // Staff passwords (and donors', where they have one): at least 10 characters; in
+        // production also letters + numbers and not found in known data breaches.
+        Password::defaults(fn (): Password => app()->isProduction()
+            ? Password::min(10)->letters()->numbers()->uncompromised()
+            : Password::min(10));
 
         // Vendor model — not picked up by policy auto-discovery.
         Gate::policy(Activity::class, ActivityPolicy::class);
