@@ -36,9 +36,10 @@ class RequireMfaForPrivilegedRoles
 
             if ($profileUrl !== null) {
                 Notification::make()
-                    ->title('Set up two-factor authentication')
-                    ->body('Your role requires an authenticator app. Set it up below to continue.')
+                    ->title('One more step: set up two-factor')
+                    ->body(self::instructions())
                     ->warning()
+                    ->persistent()
                     ->send();
 
                 return redirect()->to($profileUrl);
@@ -46,5 +47,15 @@ class RequireMfaForPrivilegedRoles
         }
 
         return $next($request);
+    }
+
+    /** Plain steps for staff who have never used an authenticator app. */
+    public static function instructions(): string
+    {
+        return 'Finance, Trustee and Super Admin accounts need an authenticator app before they can open the admin panel. '
+            .'1) Install Google Authenticator or Microsoft Authenticator on your phone. '
+            .'2) Below, under "Authenticator app", click "Set up", scan the QR code and type the 6-digit code. '
+            .'3) Save the recovery codes somewhere safe (not on the same phone) — they let you in if you lose the phone. '
+            .'Lost both? Ask a Super Admin to "Reset two-factor" on Staff users.';
     }
 }
