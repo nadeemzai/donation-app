@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy the latest "main" to this server (Week 12 Day 4).
+# Deploy the latest "main" (or a release tag: BRANCH=week12) to this server (Week 12 Day 4).
 #   cd /var/www/imdaad && sudo -u www-data ./donation-app/deploy/deploy.sh
 # Payment callbacks keep working while the site shows its maintenance page (bootstrap/app.php).
 set -euo pipefail
@@ -17,8 +17,13 @@ trap 'echo "✗ Deploy failed — the site is still in maintenance mode. Fix, th
 
 echo "→ Code ($BRANCH)"
 git -C "$REPO_DIR" fetch --tags origin
-git -C "$REPO_DIR" checkout "$BRANCH"
-git -C "$REPO_DIR" pull --ff-only origin "$BRANCH"
+if git -C "$REPO_DIR" show-ref --verify --quiet "refs/tags/$BRANCH"; then
+    # A release tag (also how to roll back: BRANCH=week12 ./deploy.sh)
+    git -C "$REPO_DIR" checkout --detach "refs/tags/$BRANCH"
+else
+    git -C "$REPO_DIR" checkout "$BRANCH"
+    git -C "$REPO_DIR" pull --ff-only origin "$BRANCH"
+fi
 
 echo "→ PHP packages"
 composer install --no-dev --optimize-autoloader --no-interaction --no-progress
