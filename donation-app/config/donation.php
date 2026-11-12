@@ -21,8 +21,8 @@ return [
     // and an optional heartbeat URL (healthchecks.io, Better Stack…) pinged every 10 minutes —
     // if the pings stop, the server, cron or scheduler is down.
     'ops' => [
-        'alert_email' => env('OPS_ALERT_EMAIL', env('ADMIN_EMAIL')),
-        'heartbeat_url' => env('HEARTBEAT_URL'),
+        'alert_email' => env('OPS_ALERT_EMAIL') ?: (env('ADMIN_EMAIL') ?: null),
+        'heartbeat_url' => env('HEARTBEAT_URL') ?: null,
     ],
 
     // Load testing (Week 12 Day 2): requests from these IPs skip the rate limits so k6 can push
