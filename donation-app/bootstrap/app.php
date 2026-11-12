@@ -28,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustHosts();
         // Payment gateways post their results to /payments/* without our CSRF token.
         $middleware->validateCsrfTokens(except: ['payments/*']);
+        // During a deploy (php artisan down) gateway callbacks and donors coming back from the
+        // gateway are still answered, so no payment result is lost; the health check too.
+        $middleware->preventRequestsDuringMaintenance(except: ['payments/*', 'up', 'api/v1/health']);
         $middleware->api(prepend: [PrepareApiRequest::class], append: [SecurityHeaders::class]);
         // Logged-out visitors to the donor portal go to its login page (the admin panel
         // has its own login). There is no generic "login" route.

@@ -17,6 +17,14 @@ return [
         'enforce' => env('APP_ENV') !== 'local' || (bool) env('MFA_ENFORCE', true),
     ],
 
+    // Operations (Week 12 Day 4): who gets alerts (ops:health, failed ledger checks, backups),
+    // and an optional heartbeat URL (healthchecks.io, Better Stack…) pinged every 10 minutes —
+    // if the pings stop, the server, cron or scheduler is down.
+    'ops' => [
+        'alert_email' => env('OPS_ALERT_EMAIL', env('ADMIN_EMAIL')),
+        'heartbeat_url' => env('HEARTBEAT_URL'),
+    ],
+
     // Load testing (Week 12 Day 2): requests from these IPs skip the rate limits so k6 can push
     // the donate and callback paths. Comma-separated, e.g. "203.0.113.7". IGNORED in production.
     'load_test_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('LOAD_TEST_IPS', ''))))),
