@@ -19,9 +19,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Fills a LOCAL database with realistic sample donors, campaigns, updates and confirmed
- * donations (made through DonationService, so ledger:verify passes),
- * so the admin can be clicked through. Refuses to run anywhere except APP_ENV=local.
+ * Fills a LOCAL or STAGING (staff testing, Week 12 Day 3) database with realistic sample donors,
+ * campaigns, updates and confirmed donations (made through DonationService, so ledger:verify
+ * passes), so the admin can be clicked through. Never runs in production. Needs the dev
+ * dependencies (Faker) installed.
  *
  *   php artisan demo:seed
  */
@@ -29,12 +30,12 @@ class SeedDemoData extends Command
 {
     protected $signature = 'demo:seed {--donors=40 : How many sample donors}';
 
-    protected $description = 'Local only: add sample donors, campaigns and updates';
+    protected $description = 'Local / staging only: add sample donors, campaigns and updates';
 
     public function handle(DonationService $donationService, CampaignService $campaignService): int
     {
-        if (! app()->environment('local')) {
-            $this->error('demo:seed only runs with APP_ENV=local. It never touches staging or production.');
+        if (! app()->environment(['local', 'staging'])) {
+            $this->error('demo:seed only runs with APP_ENV=local or staging. It never touches production.');
 
             return self::FAILURE;
         }
