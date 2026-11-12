@@ -29,26 +29,29 @@ it('never issues the same number twice when 5 processes run at once', function (
         'QUEUE_CONNECTION' => 'sync',
     ];
 
-    $results = Process::pool(function (Pool $pool) use ($env): void {
-        foreach (range(1, 5) as $i) {
-            $pool->as("worker-{$i}")
-                ->path(base_path())
-                ->env($env)
-                ->timeout(120)
-                ->command([PHP_BINARY, 'artisan', 'numbers:issue-test', 'receipt', '--count=20']);
+    try {
+        $results = Process::pool(function (Pool $pool) use ($env): void {
+            foreach (range(1, 5) as $i) {
+                $pool->as("worker-{$i}")
+                    ->path(base_path())
+                    ->env($env)
+                    ->timeout(120)
+                    ->command([PHP_BINARY, 'artisan', 'numbers:issue-test', 'receipt', '--count=20']);
+            }
+        })->start()->wait();
+
+        $numbers = collect();
+        foreach ($results->collect() as $name => $result) {
+            expect($result->successful())->toBeTrue("{$name} failed: ".$result->errorOutput());
+            $numbers = $numbers->merge(array_filter(explode("\n", trim($result->output()))));
         }
-    })->start()->wait();
-
-    $numbers = collect();
-    foreach ($results->collect() as $name => $result) {
-        expect($result->successful())->toBeTrue("{$name} failed: ".$result->errorOutput());
-        $numbers = $numbers->merge(array_filter(explode("\n", trim($result->output()))));
+    } finally {
+        // Always remove what the workers committed (outside this test's transaction) — even when
+        // a worker failed — or every later test that expects receipt -000001 fails too.
+        config(['database.connections.cleanup' => $mysql]);
+        DB::connection('cleanup')->table('number_sequences')->where('key', 'receipt')->delete();
+        DB::purge('cleanup');
     }
-
-    // Clean up rows the workers committed (outside this test's transaction).
-    config(['database.connections.cleanup' => $mysql]);
-    DB::connection('cleanup')->table('number_sequences')->where('key', 'receipt')->delete();
-    DB::purge('cleanup');
 
     expect($numbers)->toHaveCount(100)
         ->and($numbers->unique())->toHaveCount(100)

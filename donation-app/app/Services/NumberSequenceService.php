@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Enums\SequenceKey;
 use App\Settings\NumberingSettings;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use stdClass;
@@ -32,25 +31,23 @@ class NumberSequenceService
         $year = (int) now()->format('Y');
 
         $number = DB::transaction(function () use ($key, $prefix, $year): int {
-            $row = $this->lockedRow($key, $year);
-
-            if ($row === null) {
-                try {
-                    DB::table('number_sequences')->insert([
-                        'key' => $key->value,
-                        'prefix' => $prefix,
-                        'year' => $year,
-                        'last_number' => 0,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } catch (UniqueConstraintViolationException) {
-                    // Another request created this year's row first — use theirs.
-                }
-
-                $row = $this->lockedRow($key, $year)
-                    ?? throw new RuntimeException("Could not create number sequence [{$key->value}/{$year}].");
+            // The year's row is created WITHOUT a locking read first. Locking a row that doesn't
+            // exist yet takes a MySQL gap lock; two requests holding it and both inserting
+            // deadlock each other (seen in CI with 5 processes on the year's first number).
+            // INSERT IGNORE simply waits for the other insert and does nothing if it won.
+            if (! DB::table('number_sequences')->where('key', $key->value)->where('year', $year)->exists()) {
+                DB::table('number_sequences')->insertOrIgnore([
+                    'key' => $key->value,
+                    'prefix' => $prefix,
+                    'year' => $year,
+                    'last_number' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
+
+            $row = $this->lockedRow($key, $year)
+                ?? throw new RuntimeException("Could not create number sequence [{$key->value}/{$year}].");
 
             $next = (int) $row->last_number + 1;
 
