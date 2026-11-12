@@ -243,7 +243,8 @@ return [
         'notifiable' => Notifiable::class,
 
         'mail' => [
-            'to' => env('OPS_ALERT_EMAIL', env('ADMIN_EMAIL', 'admin@example.org')),
+            // Blank values fall through (spatie refuses an empty address at boot, e.g. in CI).
+            'to' => env('OPS_ALERT_EMAIL') ?: (env('ADMIN_EMAIL') ?: 'admin@example.org'),
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
