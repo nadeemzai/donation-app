@@ -85,6 +85,13 @@ final class SecurityChecks
         $add($ok(! str_starts_with((string) config('filesystems.disks.local.root'), public_path())), 'Private files are outside the web root', (string) config('filesystems.disks.local.root'));
         $add(is_link(public_path('storage')) ? self::PASS : self::WARN, 'public/storage link exists', 'php artisan storage:link (public images only)');
 
+        // Backups & monitoring (Week 12 Day 4)
+        $backupDisks = (array) config('backup.backup.destination.disks', []);
+        $add(array_diff($backupDisks, ['local']) !== [] ? self::PASS : self::FAIL, 'Backups also go off-site', 'BACKUP_DISKS=local,backups — now: '.implode(',', $backupDisks));
+        $add(filled(config('backup.backup.password')) ? self::PASS : self::FAIL, 'Backups are encrypted', 'BACKUP_ARCHIVE_PASSWORD set (and kept with APP_KEY in the password manager)');
+        $add(filled(config('donation.ops.alert_email')) ? self::PASS : self::FAIL, 'Someone receives alerts', 'OPS_ALERT_EMAIL — backups, ledger check, ops:health');
+        $add(filled(config('donation.ops.heartbeat_url')) ? self::PASS : self::WARN, 'Heartbeat monitor is set', 'HEARTBEAT_URL — alerts you if the server or scheduler stops');
+
         // Speed (Week 12 Day 2) — warnings: the site works without them, just slower.
         $add(app()->configurationIsCached() ? self::PASS : self::WARN, 'Config is cached', 'php artisan optimize (on every deploy)');
         $add(app()->routesAreCached() ? self::PASS : self::WARN, 'Routes are cached', 'php artisan optimize');

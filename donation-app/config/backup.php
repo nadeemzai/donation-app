@@ -37,10 +37,15 @@ return [
                  *
                  * Directories used by the backup process will automatically be excluded.
                  */
+                // Code + .env (APP_KEY!) + storage/app (receipts, certificates, private documents).
+                // The archive is encrypted with BACKUP_ARCHIVE_PASSWORD.
                 'exclude' => [
                     base_path('vendor'),
                     base_path('node_modules'),
+                    base_path('.git'),
                     storage_path('framework'),
+                    storage_path('logs'),
+                    storage_path('app/backup-temp'),
                 ],
 
                 /*
@@ -165,9 +170,9 @@ return [
             /*
              * The disk names on which the backups will be stored.
              */
-            'disks' => [
-                'local',
-            ],
+            // Week 12: "local" plus an off-site disk, e.g. BACKUP_DISKS=local,backups (see the
+            // "backups" disk in config/filesystems.php). A copy only on this server is lost with it.
+            'disks' => array_values(array_filter(array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'local'))))),
 
             /*
              * Determines whether to allow backups to continue when some targets fail instead of failing completely.
@@ -228,7 +233,7 @@ return [
             CleanupHasFailedNotification::class => ['mail'],
             BackupWasSuccessfulNotification::class => ['mail'],
             HealthyBackupWasFoundNotification::class => ['mail'],
-            CleanupWasSuccessfulNotification::class => ['mail'],
+            CleanupWasSuccessfulNotification::class => [],
         ],
 
         /*
@@ -238,7 +243,7 @@ return [
         'notifiable' => Notifiable::class,
 
         'mail' => [
-            'to' => 'your@example.com',
+            'to' => env('OPS_ALERT_EMAIL', env('ADMIN_EMAIL', 'admin@example.org')),
 
             'from' => [
                 'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
@@ -299,7 +304,7 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => ['local'],
+            'disks' => array_values(array_filter(array_map('trim', explode(',', (string) env('BACKUP_DISKS', 'local'))))),
             'health_checks' => [
                 MaximumAgeInDays::class => 1,
                 MaximumStorageInMegabytes::class => 5000,
