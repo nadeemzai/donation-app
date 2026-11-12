@@ -11,7 +11,7 @@ declare(strict_types=1);
 | (e.g. "donors.update"). Policies check those names. Change access here, in
 | code, and re-run the seeder — not by clicking in the admin panel.
 |
-| Levels: F = full · C = view/create/update · A = view/approve · V = view · - = none
+| Levels: F = full · C = view/create/update · CE = C + export · A = view/approve · V = view · VE = view + export · - = none
 | super_admin bypasses every check (Gate::before), its column is informational.
 */
 
@@ -22,8 +22,10 @@ return [
     'levels' => [
         'F' => ['view_any', 'view', 'create', 'update', 'delete', 'approve', 'export'],
         'C' => ['view_any', 'view', 'create', 'update'],
+        'CE' => ['view_any', 'view', 'create', 'update', 'export'],
         'A' => ['view_any', 'view', 'approve'],
         'V' => ['view_any', 'view'],
+        'VE' => ['view_any', 'view', 'export'],
         '-' => [],
     ],
 
@@ -35,14 +37,15 @@ return [
         'donors' => ['F', 'C', 'C', 'V', '-', 'V', 'V'],
         'funds' => ['F', 'C', 'C', 'C', '-', 'V', 'V'], // funds (Finance manages them)
         'campaigns' => ['F', 'C', 'V', 'C', '-', 'V', 'V'], // campaigns & progress updates
-        'donations' => ['F', 'V', 'C', 'V', '-', 'V', 'V'], // donations & payments
+        'donations' => ['F', 'V', 'CE', 'V', '-', 'V', 'V'], // donations & payments (Finance may export)
         'proof_verification' => ['F', '-', 'A', '-', '-', '-', 'V'],
         'receipts' => ['F', 'V', 'C', '-', '-', '-', 'V'], // receipts & certificates
         'beneficiaries' => ['F', 'C', 'V', '-', 'C', 'V', 'V'], // beneficiaries & applications
         'disbursements' => ['F', 'A', 'C', '-', 'C', 'A', 'V'],
+        'projects' => ['F', 'C', 'V', 'C', 'V', 'V', 'V'], // projects & milestones (Week 10); spend comes from disbursements
         'qurbani' => ['F', 'C', 'C', 'C', 'C', 'V', 'V'], // qurbani & inventory
         'ledger' => ['F', 'V', 'C', '-', '-', 'V', 'V'], // ledger & reconciliation
-        'reports' => ['F', 'V', 'V', 'V', 'V', 'V', 'V'], // reports & dashboard
+        'reports' => ['F', 'VE', 'VE', 'V', 'V', 'VE', 'VE'], // reports & dashboard (Week 11: managers, finance, trustees, auditors export)
         'cms' => ['F', 'C', '-', 'C', '-', '-', '-'],
         'audit_log' => ['V', 'V', '-', '-', '-', 'V', 'V'],
     ],

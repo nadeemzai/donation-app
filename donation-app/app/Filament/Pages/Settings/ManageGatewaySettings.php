@@ -33,7 +33,7 @@ class ManageGatewaySettings extends BaseSettingsPage
 
     protected static string $viewPermission = 'users.update';
 
-    protected static array $secretFields = ['jazzcash_password', 'jazzcash_integrity_salt', 'easypaisa_hash_key'];
+    protected static array $secretFields = ['jazzcash_password', 'jazzcash_integrity_salt', 'easypaisa_hash_key', 'easypaisa_password'];
 
     public function form(Schema $schema): Schema
     {
@@ -78,7 +78,11 @@ class ManageGatewaySettings extends BaseSettingsPage
                     $mode('easypaisa_mode'),
                     $order('easypaisa_display_order'),
                     TextInput::make('easypaisa_store_id')->label('Store ID')->maxLength(100),
-                    $secret('easypaisa_hash_key', 'Hash key'),
+                    $secret('easypaisa_hash_key', 'Hash key')
+                        ->helperText('16 characters, from the Easypaisa merchant portal. '.$this->secretHelperText()),
+                    TextInput::make('easypaisa_username')->label('API username')->maxLength(100),
+                    $secret('easypaisa_password', 'API password'),
+                    TextInput::make('easypaisa_account_number')->label('Merchant account number')->maxLength(50),
                 ]),
             Section::make('Bank transfer / Raast')
                 ->description('Donors transfer manually and upload proof; Finance verifies it.')
@@ -96,6 +100,13 @@ class ManageGatewaySettings extends BaseSettingsPage
                         ->validationMessages(['regex' => 'Enter a 24-character Pakistani IBAN without spaces, e.g. PK36SCBL0000001123456702.'])
                         ->dehydrateStateUsing(fn (?string $state): ?string => $state === null ? null : strtoupper(str_replace(' ', '', $state))),
                     TextInput::make('bank_raast_id')->label('Raast ID')->maxLength(50),
+                    TextInput::make('bank_swift')
+                        ->label('SWIFT / BIC code')
+                        ->helperText('For donors abroad sending an international transfer, e.g. MEZNPKKA.')
+                        ->maxLength(11)
+                        ->regex('/^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$/')
+                        ->validationMessages(['regex' => 'A SWIFT code has 8 or 11 letters and digits, e.g. MEZNPKKA.'])
+                        ->dehydrateStateUsing(fn (?string $state): ?string => blank($state) ? null : strtoupper(trim($state))),
                 ]),
         ]);
     }

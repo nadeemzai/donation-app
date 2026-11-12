@@ -39,9 +39,9 @@ return [
     |
     */
 
-    // Cookie (stateful) API auth uses the donor guard only — staff sessions
-    // must never authenticate API requests.
-    'guard' => ['donor'],
+    // Empty: the API accepts bearer tokens only. A website login cookie never counts as
+    // an API login (Week 7 Day 2) — there is no single-page app using cookie auth.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -54,7 +54,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Mobile app tokens last 90 days (Week 7); the donor logs in again with a code after that.
+    'expiration' => (int) env('SANCTUM_EXPIRATION', 60 * 24 * 90),
 
     /*
     |--------------------------------------------------------------------------

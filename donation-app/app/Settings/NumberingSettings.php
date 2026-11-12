@@ -19,6 +19,18 @@ class NumberingSettings extends Settings
 
     public string $donor_prefix;
 
+    public string $tax_certificate_prefix;
+
+    public string $beneficiary_prefix;
+
+    public string $application_prefix;
+
+    public string $project_prefix;
+
+    public string $qurbani_booking_prefix;
+
+    public string $in_kind_prefix;
+
     public int $pad_length;
 
     public static function group(): string

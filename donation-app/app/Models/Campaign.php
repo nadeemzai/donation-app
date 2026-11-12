@@ -141,6 +141,14 @@ class Campaign extends Model implements HasMedia
     }
 
     /**
+     * @return HasMany<Donation, $this>
+     */
+    public function donations(): HasMany
+    {
+        return $this->hasMany(Donation::class);
+    }
+
+    /**
      * Percentage of the goal raised (0–100), or null for open-ended causes.
      */
     public function progressPercent(): ?int

@@ -33,14 +33,14 @@ class FundPolicy
     }
 
     /**
-     * Only an empty fund can be removed: no campaigns and a zero balance.
-     * (From Week 3 also: no donations.)
+     * Only an empty fund can be removed: no campaigns, no donations, no ledger
+     * entries and a zero balance.
      */
     public function delete(User $user, Fund $fund): bool
     {
         return $user->can('funds.delete')
-            && ! $fund->campaigns()->withTrashed()->exists()
-            && bccomp($fund->balance, '0', 2) === 0;
+            && bccomp($fund->balance, '0', 2) === 0
+            && $fund->isUnused();
     }
 
     public function deleteAny(User $user): bool

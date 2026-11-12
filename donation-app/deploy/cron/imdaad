@@ -1,0 +1,4 @@
+# /etc/cron.d/imdaad — Laravel scheduler, every minute, as the web user.
+# Runs: payment status checks (5 min), Qurbani holds (15 min), ops:health (10 min),
+# backups (01:00 PKT), ledger check (01:30 PKT), campaign closing, reminders… (routes/console.php)
+* * * * * www-data cd /var/www/imdaad/donation-app && php artisan schedule:run >> /dev/null 2>&1

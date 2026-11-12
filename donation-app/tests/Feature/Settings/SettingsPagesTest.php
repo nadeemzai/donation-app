@@ -50,7 +50,7 @@ it('does not let a manager change settings they can view', function () {
         ->fillForm(['org_name' => 'Changed by manager'])
         ->call('save');
 
-    expect(app(GeneralSettings::class)->org_name)->toBe('Donation Management');
+    expect(app(GeneralSettings::class)->org_name)->toBe('Imdaad');
 });
 
 it('lets super admin switch founder self-approval off', function () {

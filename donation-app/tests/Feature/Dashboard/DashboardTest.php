@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Enums\CampaignStatus;
+use App\Enums\DonationStatus;
 use App\Enums\Role;
 use App\Filament\Widgets\CampaignStatsOverview;
 use App\Models\Campaign;
+use App\Models\Donation;
 use App\Models\Donor;
+use App\Services\LedgerAuditService;
 use Livewire\Livewire;
 
 // FR-RPT-01 (first version) — dashboard headline numbers; demo data command
@@ -50,5 +53,10 @@ it('adds demo donors, campaigns and updates locally', function () {
     expect(Donor::count())->toBe(20) // 5 + 5 corporate + 10 guests
         ->and(Campaign::count())->toBe(6)
         ->and(Campaign::where('status', CampaignStatus::Live)->count())->toBe(4)
-        ->and(Campaign::where('status', CampaignStatus::Closed)->count())->toBe(1);
+        ->and(Campaign::where('status', CampaignStatus::Closed)->count())->toBe(1)
+        ->and(Donation::query()->where('status', DonationStatus::Paid)->count())->toBeGreaterThan(0)
+        ->and(Campaign::where('title', 'Zakat for Widows')->value('raised_amount'))->toBe('2050000.00');
+
+    // Totals come from real confirmed donations, so the ledger check passes.
+    expect(app(LedgerAuditService::class)->problems())->toBe([]);
 });

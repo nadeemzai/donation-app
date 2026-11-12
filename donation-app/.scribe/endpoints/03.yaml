@@ -1,0 +1,407 @@
+name: Auth
+description: |-
+
+  Donors log in with a one-time code — no passwords (Week 7 Day 2).
+
+  1. `POST /auth/login` (or `/auth/register` for a new donor) with a mobile number or email.
+     A 6-digit code goes to WhatsApp (mobile number, when WhatsApp is set up) or email.
+  2. `POST /auth/otp/verify` with the code → an API token. Send it as `Authorization: Bearer …`.
+
+  The answer to step 1 is the same whether or not the number belongs to a donor, so the
+  API can't be used to find out who gives. Codes last 10 minutes, work once and die after
+  5 wrong tries. Tokens last 90 days.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/register
+    metadata:
+      custom: []
+      groupName: Auth
+      groupDescription: |-
+
+        Donors log in with a one-time code — no passwords (Week 7 Day 2).
+
+        1. `POST /auth/login` (or `/auth/register` for a new donor) with a mobile number or email.
+           A 6-digit code goes to WhatsApp (mobile number, when WhatsApp is set up) or email.
+        2. `POST /auth/otp/verify` with the code → an API token. Send it as `Authorization: Bearer …`.
+
+        The answer to step 1 is the same whether or not the number belongs to a donor, so the
+        API can't be used to find out who gives. Codes last 10 minutes, work once and die after
+        5 wrong tries. Tokens last 90 days.
+      subgroup: ''
+      subgroupDescription: ''
+      title: Register
+      description: |-
+        Creates a donor record for a new mobile number and sends the login code. If the number
+        (or email) already belongs to a donor, nothing is changed and the code goes to them —
+        the answer looks the same either way.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      name:
+        custom: []
+        name: name
+        description: 'Full name. Must be at least 2 characters. Must not be greater than 120 characters.'
+        required: true
+        example: 'Ayesha Khan'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      phone:
+        custom: []
+        name: phone
+        description: 'Pakistani mobile number. The login code goes here. Must not be greater than 20 characters.'
+        required: true
+        example: 0300-1234567
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      email:
+        custom: []
+        name: email
+        description: 'Optional. Receipts are also emailed here. Must be a valid email address. Must not be greater than 255 characters.'
+        required: false
+        example: ayesha@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      city:
+        custom: []
+        name: city
+        description: 'Optional. Must not be greater than 100 characters.'
+        required: false
+        example: Lahore
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      language:
+        custom: []
+        name: language
+        description: 'en or ur — language for receipts and messages.'
+        required: false
+        example: en
+        type: string
+        enumValues:
+          - en
+          - ur
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      whatsapp_opt_in:
+        custom: []
+        name: whatsapp_opt_in
+        description: 'Receipts and updates on WhatsApp.'
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      name: 'Ayesha Khan'
+      phone: 0300-1234567
+      email: ayesha@example.com
+      city: Lahore
+      language: en
+      whatsapp_opt_in: true
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"success":true,"data":{"sent_to":"0300•••4567","expires_in":600},"message":"If this number or email is on our records, we have sent a 6-digit code.","errors":null,"meta":{}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/login
+    metadata:
+      custom: []
+      groupName: Auth
+      groupDescription: |-
+
+        Donors log in with a one-time code — no passwords (Week 7 Day 2).
+
+        1. `POST /auth/login` (or `/auth/register` for a new donor) with a mobile number or email.
+           A 6-digit code goes to WhatsApp (mobile number, when WhatsApp is set up) or email.
+        2. `POST /auth/otp/verify` with the code → an API token. Send it as `Authorization: Bearer …`.
+
+        The answer to step 1 is the same whether or not the number belongs to a donor, so the
+        API can't be used to find out who gives. Codes last 10 minutes, work once and die after
+        5 wrong tries. Tokens last 90 days.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Start login'
+      description: 'Sends a one-time code to the mobile number or email.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      identifier:
+        custom: []
+        name: identifier
+        description: "The donor's Pakistani mobile number or email address. Must not be greater than 255 characters."
+        required: true
+        example: 0300-1234567
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      identifier: 0300-1234567
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"success":true,"data":{"sent_to":"0300•••4567","expires_in":600},"message":"If this number or email is on our records, we have sent a 6-digit code.","errors":null,"meta":{}}'
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 422
+        content: '{"success":false,"data":null,"message":"Too many codes asked for. Please try again in 9 minutes.","errors":null,"meta":{}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/otp/send
+    metadata:
+      custom: []
+      groupName: Auth
+      groupDescription: |-
+
+        Donors log in with a one-time code — no passwords (Week 7 Day 2).
+
+        1. `POST /auth/login` (or `/auth/register` for a new donor) with a mobile number or email.
+           A 6-digit code goes to WhatsApp (mobile number, when WhatsApp is set up) or email.
+        2. `POST /auth/otp/verify` with the code → an API token. Send it as `Authorization: Bearer …`.
+
+        The answer to step 1 is the same whether or not the number belongs to a donor, so the
+        API can't be used to find out who gives. Codes last 10 minutes, work once and die after
+        5 wrong tries. Tokens last 90 days.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Send the code again'
+      description: 'Same as start login; use it for the "send a new code" button.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      identifier:
+        custom: []
+        name: identifier
+        description: "The donor's Pakistani mobile number or email address. Must not be greater than 255 characters."
+        required: true
+        example: 0300-1234567
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      identifier: 0300-1234567
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/otp/verify
+    metadata:
+      custom: []
+      groupName: Auth
+      groupDescription: |-
+
+        Donors log in with a one-time code — no passwords (Week 7 Day 2).
+
+        1. `POST /auth/login` (or `/auth/register` for a new donor) with a mobile number or email.
+           A 6-digit code goes to WhatsApp (mobile number, when WhatsApp is set up) or email.
+        2. `POST /auth/otp/verify` with the code → an API token. Send it as `Authorization: Bearer …`.
+
+        The answer to step 1 is the same whether or not the number belongs to a donor, so the
+        API can't be used to find out who gives. Codes last 10 minutes, work once and die after
+        5 wrong tries. Tokens last 90 days.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Verify the code'
+      description: 'Swaps the code for an API token.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      identifier:
+        custom: []
+        name: identifier
+        description: 'The same mobile number or email the code was sent to. Must not be greater than 255 characters.'
+        required: true
+        example: 0300-1234567
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      code:
+        custom: []
+        name: code
+        description: 'The 6-digit code from WhatsApp or email. Must be 6 digits.'
+        required: true
+        example: '482913'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      device_name:
+        custom: []
+        name: device_name
+        description: 'Shown to the donor in their list of logged-in devices. Must not be greater than 100 characters.'
+        required: true
+        example: "Ayesha's Galaxy A54"
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      identifier: 0300-1234567
+      code: '482913'
+      device_name: "Ayesha's Galaxy A54"
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"success":true,"data":{"token":"12|f3k…","token_type":"Bearer","expires_at":"2027-03-14T10:30:00+05:00","donor":{"id":42,"donor_code":"DNR-2026-000042","name":"Ayesha Khan"}},"message":"Logged in.","errors":null,"meta":{}}'
+        headers: []
+        description: ''
+      -
+        custom: []
+        status: 422
+        content: '{"success":false,"data":null,"message":"That code is wrong or has expired.","errors":{"code":["That code is wrong or has expired. Check it, or ask for a new one."]},"meta":{}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/logout
+    metadata:
+      custom: []
+      groupName: Auth
+      groupDescription: |-
+
+        Donors log in with a one-time code — no passwords (Week 7 Day 2).
+
+        1. `POST /auth/login` (or `/auth/register` for a new donor) with a mobile number or email.
+           A 6-digit code goes to WhatsApp (mobile number, when WhatsApp is set up) or email.
+        2. `POST /auth/otp/verify` with the code → an API token. Send it as `Authorization: Bearer …`.
+
+        The answer to step 1 is the same whether or not the number belongs to a donor, so the
+        API can't be used to find out who gives. Codes last 10 minutes, work once and die after
+        5 wrong tries. Tokens last 90 days.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Log out'
+      description: "Ends this device's token. Send `all=true` to log out of every device."
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      all:
+        custom: []
+        name: all
+        description: 'Log out everywhere.'
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      all: false
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"success":true,"data":null,"message":"Logged out.","errors":null,"meta":{}}'
+        headers: []
+        description: ''
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

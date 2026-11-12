@@ -12,12 +12,17 @@ use Illuminate\Support\Facades\DB;
 // FR-ACC-03 — settings exist with safe defaults
 
 it('loads defaults for every settings group', function () {
-    expect(app(GeneralSettings::class)->org_name)->toBe('Donation Management')
+    expect(app(GeneralSettings::class)->org_name)->toBe('Imdaad')
         ->and(app(NumberingSettings::class))
         ->donation_prefix->toBe('DN')
         ->receipt_prefix->toBe('RC')
         ->disbursement_prefix->toBe('DS')
         ->donor_prefix->toBe('DR')
+        ->beneficiary_prefix->toBe('BN')
+        ->application_prefix->toBe('AP')
+        ->project_prefix->toBe('PR')
+        ->qurbani_booking_prefix->toBe('QB')
+        ->in_kind_prefix->toBe('GR')
         ->pad_length->toBe(6)
         ->and(app(ApprovalSettings::class)->allow_founder_self_approval)->toBeTrue() // BR-06 at launch
         ->and(app(GatewaySettings::class))

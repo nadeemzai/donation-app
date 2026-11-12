@@ -15,13 +15,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
 /**
  * A money bucket (FR-CMP-01). Every donation is credited to exactly one fund (BR-01).
  *
  * - is_zakat is always derived from the type; it can't be set by hand.
  * - Restricted funds must record what the money may be used for (BR-10).
- * - balance is not mass-assignable; only FundLedgerService (Week 3) changes it.
+ * - balance is not mass-assignable; only FundLedgerService changes it.
+ * - Once a fund has donations its type can't change — Zakat money must stay Zakat (BR-02).
  *
  * @property int $id
  * @property string $code
@@ -38,10 +41,13 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  */
 #[Fillable(['code', 'name', 'type', 'restriction', 'description', 'is_active', 'sort_order'])]
-class Fund extends Model
+class Fund extends Model implements HasMedia
 {
     /** @use HasFactory<FundFactory> */
-    use Auditable, HasFactory, SoftDeletes;
+    use Auditable, HasFactory, InteractsWithMedia, SoftDeletes;
+
+    /** Photo shown on the website (home, Ways to give, fund page, campaign cards without a cover). */
+    public const IMAGE = 'image';
 
     /** New funds start empty; also true for an unsaved/unrefreshed model. */
     protected $attributes = [
@@ -56,10 +62,46 @@ class Fund extends Model
             $fund->code = strtoupper(trim($fund->code));
             $fund->is_zakat = $fund->type->isZakat();
 
+            if ($fund->exists && $fund->isDirty('type') && $fund->donations()->exists()) {
+                throw new DomainException('This fund already has donations, so its type cannot change.');
+            }
+
             if ($fund->type->requiresRestriction() && blank($fund->restriction)) {
                 throw new DomainException('A restricted fund must say what the money may be used for.');
             }
         });
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::IMAGE)
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+            ->useDisk('public');
+    }
+
+    /**
+     * The uploaded photo, or the built-in illustration for the fund type
+     * (public/images/funds/{type}.svg) until staff upload one.
+     */
+    /**
+     * Never had a campaign (even archived), a donation or a ledger line. Uses the answers the
+     * fund list loads with the rows (FundResource::getEloquentQuery) when present.
+     */
+    public function isUnused(): bool
+    {
+        $loaded = fn (string $key): ?bool => array_key_exists($key, $this->getAttributes()) ? (bool) $this->getAttribute($key) : null;
+
+        return ! ($loaded('used_by_campaigns') ?? $this->campaigns()->withTrashed()->exists())
+            && ! ($loaded('used_by_donations') ?? $this->donations()->exists())
+            && ! ($loaded('used_by_ledger') ?? $this->ledgerEntries()->exists());
+    }
+
+    public function imageUrl(): string
+    {
+        $uploaded = $this->getFirstMediaUrl(self::IMAGE);
+
+        return $uploaded !== '' ? $uploaded : asset('images/funds/'.$this->type->value.'.svg');
     }
 
     /**
@@ -68,6 +110,22 @@ class Fund extends Model
     public function campaigns(): HasMany
     {
         return $this->hasMany(Campaign::class);
+    }
+
+    /**
+     * @return HasMany<Donation, $this>
+     */
+    public function donations(): HasMany
+    {
+        return $this->hasMany(Donation::class);
+    }
+
+    /**
+     * @return HasMany<FundLedgerEntry, $this>
+     */
+    public function ledgerEntries(): HasMany
+    {
+        return $this->hasMany(FundLedgerEntry::class);
     }
 
     /**

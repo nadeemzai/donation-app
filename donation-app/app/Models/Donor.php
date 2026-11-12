@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -76,6 +77,24 @@ class Donor extends Authenticatable
         });
     }
 
+    /** Messages in Urdu when the donor chose it (preferences.language = "ur"). */
+    public function prefersUrdu(): bool
+    {
+        return ($this->preferences['language'] ?? 'en') === 'ur';
+    }
+
+    /** Email is on unless the donor turned it off. */
+    public function acceptsEmail(): bool
+    {
+        return ($this->preferences['email_opt_in'] ?? true) !== false;
+    }
+
+    /** Donor allowed WhatsApp messages (receipts, updates). Off unless they said yes. */
+    public function wantsWhatsApp(): bool
+    {
+        return ($this->preferences['whatsapp_opt_in'] ?? false) === true;
+    }
+
     /** "35202-•••••••-1" — for screens; the full CNIC is never displayed. */
     public function maskedCnic(): ?string
     {
@@ -101,6 +120,30 @@ class Donor extends Authenticatable
         }
 
         return str_repeat('•', max(0, strlen($ntn) - 2)).substr($ntn, -2);
+    }
+
+    /**
+     * @return HasMany<Donation, $this>
+     */
+    public function donations(): HasMany
+    {
+        return $this->hasMany(Donation::class);
+    }
+
+    /**
+     * @return HasMany<RecurringPlan, $this>
+     */
+    public function recurringPlans(): HasMany
+    {
+        return $this->hasMany(RecurringPlan::class);
+    }
+
+    /**
+     * @return HasMany<DeviceToken, $this>
+     */
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
     }
 
     /**

@@ -36,6 +36,14 @@ class GatewaySettings extends Settings
 
     public ?string $easypaisa_hash_key;
 
+    /** REST API login (direct wallet charge + status inquiry). */
+    public ?string $easypaisa_username;
+
+    public ?string $easypaisa_password;
+
+    /** Merchant account number — required by the status inquiry API. */
+    public ?string $easypaisa_account_number;
+
     // Bank transfer / Raast (manual, with proof upload)
     public bool $bank_enabled;
 
@@ -49,6 +57,9 @@ class GatewaySettings extends Settings
 
     public ?string $bank_raast_id;
 
+    /** SWIFT / BIC code, for donors sending money from abroad. */
+    public ?string $bank_swift;
+
     public static function group(): string
     {
         return 'gateways';
@@ -59,6 +70,6 @@ class GatewaySettings extends Settings
      */
     public static function encrypted(): array
     {
-        return ['jazzcash_password', 'jazzcash_integrity_salt', 'easypaisa_hash_key'];
+        return ['jazzcash_password', 'jazzcash_integrity_salt', 'easypaisa_hash_key', 'easypaisa_password'];
     }
 }

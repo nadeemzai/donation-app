@@ -49,6 +49,7 @@ class CampaignPolicy
         return $user->can('campaigns.delete')
             && $campaign->status === CampaignStatus::Draft
             && $campaign->donor_count === 0
+            && ! $campaign->donations()->exists()
             && bccomp($campaign->raised_amount, '0', 2) === 0;
     }
 

@@ -8,6 +8,7 @@ use App\Enums\CampaignStatus;
 use App\Models\Campaign;
 use App\Models\Donor;
 use App\Models\User;
+use App\Support\AdminPalette;
 use Filament\Support\Icons\Heroicon;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -19,7 +20,7 @@ use Illuminate\Support\Facades\Auth;
  */
 class CampaignStatsOverview extends StatsOverviewWidget
 {
-    protected static ?int $sort = 1;
+    protected static ?int $sort = 7;
 
     public static function canView(): bool
     {
@@ -44,16 +45,20 @@ class CampaignStatsOverview extends StatsOverviewWidget
         return [
             Stat::make('Live campaigns', (string) (clone $live)->count())
                 ->description(Campaign::query()->where('status', CampaignStatus::Draft->value)->count().' in draft')
-                ->icon(Heroicon::OutlinedMegaphone),
+                ->icon(Heroicon::OutlinedMegaphone)
+                ->extraAttributes(AdminPalette::stat('amber')),
             Stat::make('Raised in live campaigns', 'Rs '.number_format((float) $raised))
-                ->icon(Heroicon::OutlinedBanknotes),
+                ->icon(Heroicon::OutlinedBanknotes)
+                ->extraAttributes(AdminPalette::stat('teal')),
             Stat::make('Donors', number_format(Donor::query()->count()))
                 ->description(number_format(Donor::query()->whereNotNull('password')->count()).' with an account')
-                ->icon(Heroicon::OutlinedUserGroup),
+                ->icon(Heroicon::OutlinedUserGroup)
+                ->extraAttributes(AdminPalette::stat('sky')),
             Stat::make('Ending in 7 days', (string) $endingSoon)
                 ->description($endingSoon > 0 ? 'Post an update or extend the date' : 'Nothing ending soon')
                 ->color($endingSoon > 0 ? 'warning' : 'gray')
-                ->icon(Heroicon::OutlinedClock),
+                ->icon(Heroicon::OutlinedClock)
+                ->extraAttributes(AdminPalette::stat($endingSoon > 0 ? 'pink' : 'slate')),
         ];
     }
 }

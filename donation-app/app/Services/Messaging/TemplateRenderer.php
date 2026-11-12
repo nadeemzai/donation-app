@@ -1,0 +1,194 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Messaging;
+
+use App\Models\Donation;
+use App\Models\Donor;
+use App\Models\ImpactUpdate;
+use App\Models\MessageTemplate;
+use App\Models\QurbaniBooking;
+use App\Models\Receipt;
+use App\Models\RecurringPlanPeriod;
+use App\Models\TaxCertificate;
+use App\Settings\GeneralSettings;
+use App\Support\Money;
+
+/**
+ * Fills a template's placeholders (FR-NTF-02). Picks the Urdu text when the donor prefers
+ * Urdu and the template has one; otherwise English. Unknown or missing placeholders become
+ * empty text — the edit screen already refuses unknown ones.
+ */
+class TemplateRenderer
+{
+    public function __construct(private readonly GeneralSettings $org) {}
+
+    /**
+     * @param  array<string, string|null>  $vars
+     * @return array{whatsapp: string, email_subject: string, email_body: string}
+     */
+    public function render(MessageTemplate $template, array $vars, bool $urdu = false): array
+    {
+        $pick = fn (?string $urduText, string $english): string => $urdu && filled($urduText) ? (string) $urduText : $english;
+
+        return [
+            'whatsapp' => $this->fill($pick($template->whatsapp_body_ur, $template->whatsapp_body), $vars),
+            'email_subject' => $this->fill($pick($template->email_subject_ur, $template->email_subject), $vars),
+            'email_body' => $this->fill($pick($template->email_body_ur, $template->email_body), $vars),
+        ];
+    }
+
+    /**
+     * Placeholder values for a donation (and its receipt, if issued).
+     *
+     * @return array<string, string|null>
+     */
+    public function varsFor(Donation $donation, ?Receipt $receipt = null, ?string $reason = null): array
+    {
+        $donation->loadMissing(['donor', 'fund', 'campaign']);
+
+        return [
+            'donor_name' => $donation->donor->name,
+            'amount' => Money::rupees((string) $donation->amount),
+            'donation_no' => $donation->donation_no,
+            'receipt_no' => $receipt?->receipt_no,
+            'fund' => $donation->fund->name,
+            'campaign' => $donation->campaign?->title,
+            'date' => ($donation->paid_at ?? $donation->created_at ?? now())->format('d M Y'),
+            'reason' => $reason,
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
+     * Placeholder values for an annual tax certificate.
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForCertificate(TaxCertificate $certificate): array
+    {
+        return [
+            'donor_name' => $certificate->donor->name,
+            'amount' => Money::rupees((string) $certificate->total),
+            'certificate_no' => $certificate->certificate_no,
+            'fiscal_year' => $certificate->fiscalYear()->label(),
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
+     * Sample values for the preview on the edit screen.
+     *
+     * @return array<string, string|null>
+     */
+    public function sampleVars(): array
+    {
+        return [
+            'donor_name' => 'Ayesha Siddiqui',
+            'amount' => 'Rs 12,500.00',
+            'donation_no' => 'DN-'.now()->year.'-000123',
+            'receipt_no' => 'RC-'.now()->year.'-000098',
+            'fund' => 'Zakat Fund',
+            'campaign' => 'Winter Relief',
+            'date' => now()->format('d M Y'),
+            'reason' => 'Amount on the slip does not match',
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+            'fiscal_year' => '2025-26',
+            'certificate_no' => 'TC-'.now()->year.'-000017',
+            'due_date' => now()->format('d M Y'),
+            'pay_link' => url('/donate?pledge=…'),
+        ];
+    }
+
+    /**
+     * Placeholder values for a pledge reminder.
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForPeriod(RecurringPlanPeriod $period, string $payLink): array
+    {
+        $plan = $period->plan;
+
+        return [
+            'donor_name' => $plan->donor->name,
+            'amount' => Money::rupees((string) $period->amount),
+            'fund' => $plan->fund->name,
+            'campaign' => $plan->campaign?->title,
+            'date' => $period->due_on->format('d M Y'),
+            'due_date' => $period->due_on->format('d M Y'),
+            'pay_link' => $payLink,
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
+     * Placeholder values for a project impact update.
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForImpactUpdate(ImpactUpdate $update, Donor $donor): array
+    {
+        $project = $update->project;
+
+        return [
+            'donor_name' => $donor->name,
+            'fund' => $project->fund->name,
+            'project' => $project->name,
+            'update_title' => $update->title,
+            'link' => route('projects.show', $project->slug).'#update-'.$update->id,
+            'date' => $update->published_at?->format('d M Y'),
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
+     * Placeholder values for a Qurbani update (allocated / done / distributed).
+     *
+     * @return array<string, string|null>
+     */
+    public function varsForQurbani(QurbaniBooking $booking, bool $urdu = false): array
+    {
+        $booking->loadMissing(['donor', 'offering', 'season', 'shareRows.animal']);
+        $animals = $booking->shareRows->pluck('animal')->filter()->unique('id')->values();
+        $days = $animals->pluck('slaughter_day')->filter()->unique()->sort()->values();
+        $slaughterDays = $booking->season->slaughterDays();
+
+        $dayText = $days->map(function (int $day) use ($slaughterDays, $urdu): string {
+            $date = $slaughterDays[$day] ?? null;
+
+            return $urdu
+                ? 'عید کا '.match ($day) {
+                    1 => 'پہلا',
+                    2 => 'دوسرا',
+                    default => 'تیسرا',
+                }.' دن'.($date !== null ? ' ('.$date->format('d-m-Y').')' : '')
+                : 'Eid day '.$day.($date !== null ? ' ('.$date->format('D d M').')' : '');
+        })->implode(', ');
+
+        return [
+            'donor_name' => $booking->donor->name,
+            'booking_no' => $booking->booking_no,
+            'animal' => $urdu ? __($booking->offering->animal->label(), [], 'ur') : $booking->offering->animal->label(),
+            'tags' => $animals->pluck('tag_no')->implode(', '),
+            'qurbani_day' => $dayText,
+            'share_names' => implode(', ', $booking->names()),
+            'amount' => Money::rupees((string) $booking->total_amount),
+            'org_name' => $this->org->org_legal_name ?: $this->org->org_name,
+        ];
+    }
+
+    /**
+     * @param  array<string, string|null>  $vars
+     */
+    private function fill(string $text, array $vars): string
+    {
+        $replacements = [];
+
+        foreach (array_keys(MessageTemplate::PLACEHOLDERS) as $name) {
+            $replacements['{'.$name.'}'] = (string) ($vars[$name] ?? '');
+        }
+
+        return trim(strtr($text, $replacements));
+    }
+}

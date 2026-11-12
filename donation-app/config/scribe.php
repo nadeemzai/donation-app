@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\ApiDocsVisible;
 use Knuckles\Scribe\Config\AuthIn;
 use Knuckles\Scribe\Config\Defaults;
 use Knuckles\Scribe\Extracting\Strategies;
@@ -13,17 +14,27 @@ use function Knuckles\Scribe\Config\removeStrategies;
 
 return [
     // The HTML <title> for the generated documentation.
-    'title' => config('app.name').' API Documentation',
+    'title' => 'Imdaad Mobile API v1',
 
     // A short description of your API. Will be included in the docs webpage, Postman collection and OpenAPI spec.
-    'description' => '',
+    'description' => 'Donor-facing API for the Imdaad mobile app: catalog, donations, payments, receipts and profile.',
 
     // Text to place in the "Introduction" section, right after the `description`. Markdown and HTML are supported.
     'intro_text' => <<<'INTRO'
-            This documentation aims to provide all the information you need to work with our API.
+            Base URL: `/api/v1`. JSON only. Every response has the same envelope:
 
-            <aside>As you scroll, you'll see code examples for working with the API in different programming languages in the dark area to the right (or as part of the content on mobile).
-            You can switch the language used with the tabs at the top right (or from the nav menu at the top left on mobile).</aside>
+            ```json
+            { "success": true, "data": {}, "message": "", "errors": null, "meta": {} }
+            ```
+
+            - **errors** is filled only on `422` (field → list of messages).
+            - **meta.pagination** on lists: `current_page`, `per_page`, `total`, `last_page`, `has_more`. Ask for more with `?page=2`.
+            - **Money** is `{ "amount": "5000.00", "currency": "PKR", "formatted": "Rs 5,000.00" }` — `amount` is a string.
+            - **Enums** are `{ "value": "paid", "label": "Paid" }`. Times are ISO 8601 in Pakistan time.
+            - Send `Accept-Language: ur` for Urdu messages. Send `X-Request-Id` and quote it when reporting a problem.
+            - Too many requests → `429` with `meta.retry_after` (seconds).
+
+            Full conventions: `docs/api-conventions.md` in the repository.
         INTRO,
 
     // The base URL displayed in the docs.
@@ -82,7 +93,8 @@ return [
         'assets_directory' => null,
 
         // Middleware to attach to the docs endpoint (if `add_routes` is true).
-        'middleware' => [],
+        // Hidden on the live site unless API_DOCS_PUBLIC=true (see ApiDocsVisible).
+        'middleware' => [ApiDocsVisible::class],
     ],
 
     'external' => [
@@ -107,7 +119,7 @@ return [
     // How is your API authenticated? This information will be used in the displayed docs, generated examples and response calls.
     'auth' => [
         // Set this to true if ANY endpoints in your API use authentication.
-        'enabled' => false,
+        'enabled' => true,
 
         // Set this to true if your API should be authenticated by default. If so, you must also set `enabled` (above) to true.
         // You can then use @unauthenticated or @authenticated on individual endpoints to change their status from the default.
@@ -117,7 +129,7 @@ return [
         'in' => AuthIn::BEARER->value,
 
         // The name of the auth parameter (e.g. token, key, apiKey) or header (e.g. Authorization, Api-Key).
-        'name' => 'key',
+        'name' => 'Authorization',
 
         // The value of the parameter to be used by Scribe to authenticate response calls.
         // This will NOT be included in the generated documentation. If empty, Scribe will use a random value.
@@ -125,10 +137,10 @@ return [
 
         // Placeholder your users will see for the auth parameter in the example requests.
         // Set this to null if you want Scribe to use a random value as placeholder instead.
-        'placeholder' => '{YOUR_AUTH_KEY}',
+        'placeholder' => '{TOKEN}',
 
         // Any extra authentication-related info for your users. Markdown and HTML are supported.
-        'extra_info' => 'You can retrieve your token by visiting your dashboard and clicking <b>Generate API token</b>.',
+        'extra_info' => 'Log in with a one-time code (POST /auth/otp/send, then /auth/otp/verify) to get a token. Send it as <code>Authorization: Bearer {TOKEN}</code>.',
     ],
 
     // Example requests for each endpoint will be shown in each of these languages.
@@ -181,7 +193,7 @@ return [
         // You can override this by listing the groups, subgroups and endpoints here in the order you want them.
         // See https://scribe.knuckles.wtf/blog/laravel-v4#easier-sorting and https://scribe.knuckles.wtf/laravel/reference/config#order for details
         // Note: does not work for `external` docs types
-        'order' => [],
+        'order' => ['App', 'Auth', 'Catalog', 'Projects', 'Qurbani', 'Content', 'Donate', 'Me', 'Devices'],
     ],
 
     // Custom logo path. This will be used as the value of the src attribute for the <img> tag,

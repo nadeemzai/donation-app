@@ -1,0 +1,198 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Site;
+
+use App\Enums\PaymentMethod;
+use App\Models\Campaign;
+use App\Models\Fund;
+use App\Models\QurbaniBooking;
+use App\Models\RecurringPlanPeriod;
+use App\Payments\GatewayRegistry;
+use App\Support\Cnic;
+use App\Support\Money;
+use App\Support\Phone;
+use App\Support\PledgeToken;
+use App\Support\QurbaniToken;
+use Closure;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
+
+/** The public donate form (Week 6 Day 2). Anyone may submit it; it is rate-limited by the route. */
+class DonateRequest extends FormRequest
+{
+    private ?RecurringPlanPeriod $pledge = null;
+
+    private bool $pledgeResolved = false;
+
+    private ?QurbaniBooking $booking = null;
+
+    private bool $bookingResolved = false;
+
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            // "5,000" and "5 000" are fine on a public form.
+            'amount' => preg_replace('/[\s,]/', '', (string) $this->input('amount')),
+            'email' => blank($this->input('email')) ? null : strtolower(trim((string) $this->input('email'))),
+            'cnic' => blank($this->input('cnic')) ? null : trim((string) $this->input('cnic')),
+            'is_anonymous' => $this->boolean('is_anonymous'),
+            'whatsapp_opt_in' => $this->boolean('whatsapp_opt_in'),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        $min = (int) config('donation.donate.min');
+        $max = (int) config('donation.donate.max');
+        $methods = array_map(fn (PaymentMethod $m): string => $m->value, app(GatewayRegistry::class)->donorMethods());
+        $bank = PaymentMethod::BankTransfer->value;
+        $booking = $this->qurbaniBooking() !== null;
+        // A pledge reminder's pay link and a Qurbani booking already know the donor.
+        $pledge = $this->pledgePeriod() !== null || $booking;
+
+        return [
+            'campaign_id' => ['nullable', 'integer'],
+            'fund_id' => ['nullable', $booking ? 'nullable' : 'required_without:campaign_id', 'integer'],
+            // A Qurbani booking's amount is the booking total, set by the server.
+            'amount' => $booking ? ['nullable'] : ['required', 'regex:/^\d{1,9}(\.\d{1,2})?$/', 'numeric', "min:{$min}", "max:{$max}"],
+            'pledge_token' => ['nullable', 'string', 'max:1000'],
+            'qurbani_token' => ['nullable', 'string', 'max:1000'],
+            'name' => [$pledge ? 'nullable' : 'required', 'string', 'min:2', 'max:120'],
+            // Overseas donors may give a number abroad (+44…) or only an email.
+            'phone' => ['nullable', $pledge ? 'nullable' : 'required_without:email', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
+                if (filled($value) && (! is_string($value) || ! Phone::isValid($value))) {
+                    $fail(__('Enter a mobile number: :example.', ['example' => Phone::EXAMPLE]));
+                }
+            }],
+            'email' => ['nullable', $pledge ? 'nullable' : 'required_without:phone', 'email:rfc', 'max:255'],
+            'cnic' => ['nullable', 'string', 'max:20', function (string $attribute, mixed $value, Closure $fail): void {
+                if (! is_string($value) || ! Cnic::isValid($value)) {
+                    $fail(__('Enter the 13-digit CNIC, e.g. 35202-1234567-1, or leave it empty.'));
+                }
+            }],
+            'payment_method' => ['required', Rule::in($methods)],
+            'reference' => ["required_if:payment_method,{$bank}", 'nullable', 'string', 'max:100'],
+            'proof' => ["required_if:payment_method,{$bank}", 'nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:'.(int) config('donation.donate.proof_max_kb')],
+            'is_anonymous' => ['boolean'],
+            'whatsapp_opt_in' => ['boolean'],
+            'dedication' => ['nullable', 'string', 'max:150'],
+            'idempotency_key' => ['required', 'uuid'],
+        ];
+    }
+
+    /**
+     * The campaign must be live, the fund active.
+     *
+     * @return list<Closure>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                if ($this->qurbaniBooking() !== null || $validator->errors()->hasAny(['campaign_id', 'fund_id'])) {
+                    return;
+                }
+
+                $campaignId = $this->input('campaign_id');
+
+                if (filled($campaignId)) {
+                    if (Campaign::query()->live()->whereKey((int) $campaignId)->doesntExist()) {
+                        $validator->errors()->add('campaign_id', __('This campaign is no longer taking donations. Please choose a fund.'));
+                    }
+
+                    return;
+                }
+
+                if (Fund::query()->active()->whereKey((int) $this->input('fund_id'))->doesntExist()) {
+                    $validator->errors()->add('fund_id', __('Please choose what you would like to give to.'));
+                }
+            },
+            // JazzCash and Easypaisa need a Pakistani mobile; donors abroad pay by bank transfer.
+            function (Validator $validator): void {
+                $method = PaymentMethod::tryFrom((string) $this->input('payment_method'));
+
+                $knownDonor = $this->pledgePeriod()?->plan->donor ?? $this->qurbaniBooking()?->donor;
+                $phone = $knownDonor !== null ? (string) $knownDonor->phone : (string) $this->input('phone');
+
+                if ($method !== null && $method->isGateway() && ! $validator->errors()->has('phone') && ! Phone::isPakistaniMobile($phone)) {
+                    $validator->errors()->add('payment_method', __(':method needs a Pakistani mobile number. From abroad, please pay by bank transfer.', ['method' => $method->label()]));
+                }
+            },
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'fund_id.required_without' => __('Please choose what you would like to give to.'),
+            'amount.required' => __('Enter an amount.'),
+            'amount.regex' => __('Enter the amount in rupees, e.g. 5000.'),
+            'amount.min' => __('The smallest online donation is Rs :min.', ['min' => number_format((int) config('donation.donate.min'))]),
+            'amount.max' => __('For donations above Rs :max please contact us.', ['max' => number_format((int) config('donation.donate.max'))]),
+            'phone.required_without' => __('Give a mobile number or an email address so we can send your receipt.'),
+            'email.required_without' => __('Give an email address or a mobile number so we can send your receipt.'),
+            'payment_method.required' => __('Choose how you would like to pay.'),
+            'payment_method.in' => __('That payment method is not available right now. Please choose another.'),
+            'reference.required_if' => __('Enter the transaction ID from your bank or app.'),
+            'proof.required_if' => __('Attach a screenshot or photo of the transfer.'),
+            'proof.mimes' => __('The proof must be a JPG, PNG, WebP or PDF file.'),
+            'proof.max' => __('The proof file must be 5 MB or smaller.'),
+            'idempotency_key.*' => __('Your form expired. Please check your details and submit again.'),
+        ];
+    }
+
+    /** The visitor's amount as a money string, e.g. "5000.00". */
+    public function amount(): string
+    {
+        return Money::normalise((string) $this->validated('amount'));
+    }
+
+    /** A validated text field, trimmed; null when empty. */
+    public function optionalString(string $key): ?string
+    {
+        $value = $this->validated($key);
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /** The pledge period this donation pays, from the reminder's pay link (Week 8). */
+    public function pledgePeriod(): ?RecurringPlanPeriod
+    {
+        if (! $this->pledgeResolved) {
+            $this->pledge = PledgeToken::period(is_string($this->input('pledge_token')) ? $this->input('pledge_token') : null);
+            $this->pledgeResolved = true;
+        }
+
+        return $this->pledge;
+    }
+
+    /** The Qurbani booking this donation pays, from the booking form (Week 11). */
+    public function qurbaniBooking(): ?QurbaniBooking
+    {
+        if (! $this->bookingResolved) {
+            $this->booking = QurbaniToken::booking(is_string($this->input('qurbani_token')) ? $this->input('qurbani_token') : null);
+            $this->bookingResolved = true;
+        }
+
+        return $this->booking;
+    }
+
+    public function paymentMethod(): PaymentMethod
+    {
+        return PaymentMethod::from((string) $this->validated('payment_method'));
+    }
+}

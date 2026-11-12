@@ -1,0 +1,251 @@
+name: Content
+description: |-
+
+  Pages edited in the admin, and the Zakat calculator (Week 7 Day 3).
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/impact-updates
+    metadata:
+      custom: []
+      groupName: Content
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Impact updates'
+      description: |-
+        The latest published updates from every public campaign — "where your money went".
+        Each item says which campaign it belongs to. Paged.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"success":true,"data":[{"id":10,"title":"Repudiandae consectetur sed facere fugit dolore laborum.","body_html":"Possimus consectetur qui sunt qui. Laudantium atque hic fuga quo commodi ipsam. Ea aperiam aliquam voluptas consequatur nulla cupiditate. Dolorem minus corrupti dicta et fuga maiores.\n\nEaque sit nihil ea corrupti ullam illum dolorum tempora. Qui ex eligendi iure corrupti voluptas ad omnis sed.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"orphan-education-ongoing","title":"Orphan Education (ongoing)"}},{"id":9,"title":"Veniam aperiam qui repudiandae impedit occaecati.","body_html":"Fugiat ut ipsa qui explicabo et magni. Tempora quos exercitationem maxime. Voluptatum ipsam aut architecto ipsum. Delectus molestias voluptatibus perspiciatis itaque sint.\n\nQui assumenda reiciendis sunt quia. Quia quo hic atque blanditiis sunt soluta eius deserunt. Illum id reprehenderit doloremque libero. Sunt mollitia alias iusto qui rerum voluptas omnis quia.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"orphan-education-ongoing","title":"Orphan Education (ongoing)"}},{"id":8,"title":"Enim est vitae repudiandae repellat.","body_html":"Et quaerat numquam dolorem aut voluptas. Autem et eos perferendis distinctio. Enim nemo inventore aut ullam placeat ut deserunt quas. Molestias nobis officia ut.\n\nNumquam animi ea eveniet asperiores necessitatibus. Suscipit eos quasi animi et est. Fugiat id dolor sunt. Corrupti ut tempora asperiores facilis quos voluptatem dolorem.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"flood-emergency-appeal","title":"Flood Emergency Appeal"}},{"id":7,"title":"Aut aperiam enim dolorum facilis.","body_html":"Iusto enim et omnis voluptates id sed. Voluptatem totam modi ut ut aut. Qui eum suscipit quia ut. Mollitia eligendi saepe et similique.\n\nIure corporis unde earum impedit quae sit cupiditate sit. At libero similique molestiae ut dolores blanditiis. Illum eos sunt pariatur nihil est autem. Cum libero pariatur quo molestiae velit.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"flood-emergency-appeal","title":"Flood Emergency Appeal"}},{"id":6,"title":"Nam aspernatur quas ipsam eligendi placeat illo.","body_html":"Repudiandae dolores et ut sint et. Ab alias ut at non magnam magni. Unde culpa distinctio reiciendis vel sit. Et modi consequuntur ducimus similique.\n\nOdio aliquid similique et quia ipsam molestiae. Exercitationem quia quod error ut quae quod vitae. Ipsa molestiae ducimus assumenda nobis quam et sunt. Iste earum omnis provident porro. Dolor asperiores reprehenderit ipsa eaque ut.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"clean-water-wells","title":"Clean Water Wells"}},{"id":5,"title":"Qui et non esse illo saepe.","body_html":"Eaque magnam non minus perferendis sunt consectetur eos. Impedit sed molestiae ratione sint dolores. Libero eum unde quas expedita quia aut. Ipsum architecto nemo non in. Alias recusandae necessitatibus quo repellendus voluptatum.\n\nNihil natus ea hic est accusantium sint dicta. Tempore quo aut exercitationem laborum. Cupiditate recusandae hic et facilis labore modi inventore. Hic consequatur eum voluptates est corrupti ipsum iste.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"clean-water-wells","title":"Clean Water Wells"}},{"id":4,"title":"Quia quae vero consequatur.","body_html":"Qui voluptatem quia voluptatem. Dolor pariatur voluptatem excepturi voluptates iusto ut ipsum. Minus autem cum magnam ducimus modi expedita voluptas.\n\nIllo et est dolore vel in. Repellat laudantium doloribus cum omnis. Autem officia architecto eos consequuntur architecto atque soluta vero.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"zakat-for-widows","title":"Zakat for Widows"}},{"id":3,"title":"Voluptatem a cupiditate soluta qui.","body_html":"Nam inventore quia eius ipsa velit qui. Consequatur et qui aut quo. Vero ut magni delectus est aut rerum vitae.\n\nEarum quod vero esse minus. Delectus aliquam velit accusantium ut eum voluptate dolorem. Vel unde voluptas eius modi cupiditate atque incidunt est.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"zakat-for-widows","title":"Zakat for Widows"}},{"id":2,"title":"Rerum minima expedita in.","body_html":"Rerum et explicabo sunt provident aut. Veritatis sapiente neque eveniet qui est ullam. Atque ut unde aut praesentium cum corrupti.\n\nEx sit et modi vero. Eligendi fugit sunt perspiciatis. Dignissimos ut sit sapiente voluptates aut ducimus. Quisquam autem veritatis dolorem sint sed quae.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"winter-relief-2026-2","title":"Winter Relief 2026"}},{"id":1,"title":"Quia corrupti ut asperiores cupiditate.","body_html":"Atque iste pariatur nam qui. Fuga asperiores qui doloribus. Ut neque deleniti quas et maxime debitis aliquam unde.\n\nUt iste rerum molestias et. Quidem dolor qui ipsum ut incidunt voluptatem. Facilis culpa dignissimos ab totam voluptatem omnis et.","published_at":"2026-10-28T14:27:43+05:00","photos":[],"campaign":{"slug":"winter-relief-2026-2","title":"Winter Relief 2026"}}],"message":"","errors":null,"meta":{"pagination":{"current_page":1,"per_page":10,"total":10,"last_page":1,"has_more":false}}}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-frame-options: SAMEORIGIN
+          x-content-type-options: nosniff
+          referrer-policy: strict-origin-when-cross-origin
+          permissions-policy: 'camera=(), microphone=(), geolocation=(), payment=()'
+          x-ratelimit-limit: '60'
+          x-ratelimit-remaining: '59'
+          x-request-id: 8da4e7a3-791d-4b7e-905b-9c8788cc52f4
+          x-api-version: v1
+          content-language: en
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/pages/{slug}'
+    metadata:
+      custom: []
+      groupName: Content
+      groupDescription: |-
+
+        Pages edited in the admin, and the Zakat calculator (Week 7 Day 3).
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'A content page'
+      description: 'About us, Contact, Privacy… — published pages only. `body_html` is already cleaned.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      slug:
+        custom: []
+        name: slug
+        description: ''
+        required: true
+        example: about
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      slug: about
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"success":true,"data":{"slug":"about","title":"About us","summary":"Who we are, what we do and how we look after every rupee you give.","body_html":"<h2>Who we are<\/h2><p>We are a registered welfare organisation in Pakistan. We collect Zakat, Sadqa and donations and deliver them to families in need.<\/p><h2>How we look after your money<\/h2><ul><li>Every donation gets a receipt.<\/li><li>Zakat is kept in its own fund and spent only on people who are eligible.<\/li><li>Every fund has its own ledger, checked by our finance team.<\/li><\/ul><p><em>Please replace this text with your own story in Admin \u2192 Website \u2192 Pages.<\/em><\/p>","has_contact_form":false,"updated_at":"2026-10-29T17:40:59+05:00","web_url":"localhost:8000\/about"},"message":"","errors":null,"meta":{}}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-frame-options: SAMEORIGIN
+          x-content-type-options: nosniff
+          referrer-policy: strict-origin-when-cross-origin
+          permissions-policy: 'camera=(), microphone=(), geolocation=(), payment=()'
+          x-ratelimit-limit: '60'
+          x-ratelimit-remaining: '59'
+          x-request-id: 50663266-efc7-4baf-945c-df5374c828e6
+          x-api-version: v1
+          content-language: en
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/zakat/calculate
+    metadata:
+      custom: []
+      groupName: Content
+      groupDescription: |-
+
+        Pages edited in the admin, and the Zakat calculator (Week 7 Day 3).
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Zakat calculator'
+      description: |-
+        Works out the Zakat due with today's rates — the same rules as the website.
+        Nothing is stored. Weights in tola (1 tola = 11.664 g); money in rupees; commas allowed.
+        When Zakat is due, `pay` says which fund and amount to pre-fill on the donate screen.
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      gold_tola:
+        custom: []
+        name: gold_tola
+        description: 'Gold owned, in tola.'
+        required: false
+        example: '2'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      silver_tola:
+        custom: []
+        name: silver_tola
+        description: 'Silver owned, in tola.'
+        required: false
+        example: '0'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      cash:
+        custom: []
+        name: cash
+        description: 'Cash at home.'
+        required: false
+        example: '200000'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      bank:
+        custom: []
+        name: bank
+        description: 'Bank and wallet balances.'
+        required: false
+        example: '100000'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      business:
+        custom: []
+        name: business
+        description: 'Business stock at sale price.'
+        required: false
+        example: '0'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      receivables:
+        custom: []
+        name: receivables
+        description: 'Money others owe you that you expect back.'
+        required: false
+        example: '0'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      investments:
+        custom: []
+        name: investments
+        description: "Shares, savings certificates… today's value."
+        required: false
+        example: '0'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+      debts:
+        custom: []
+        name: debts
+        description: 'Debts and bills due now.'
+        required: false
+        example: '100000'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      gold_tola: '2'
+      silver_tola: '0'
+      cash: '200000'
+      bank: '100000'
+      business: '0'
+      receivables: '0'
+      investments: '0'
+      debts: '100000'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
